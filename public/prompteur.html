@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traduction Prompteur - Urdu/Hindi → Français</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="prompteur">
+  <div class="prompteur-layout">
+    <section class="prompteur-left">
+      <div class="prompteur-badge">Traduction en direct</div>
+      <div id="subtitles" class="prompteur-subtitles"></div>
+      <div class="prompteur-footer">
+        <span class="session-info" id="sessionInfo"></span>
+        <span class="prompteur-status" id="statusText">Déconnecté</span>
+      </div>
+    </section>
+
+    <aside class="prompteur-right">
+      <div class="status-bar">
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot"></span>
+          <span class="status-text">Statut</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="btn btn-primary">
+          <span class="btn-icon">🎤</span>
+          Démarrer la traduction
+        </button>
+        <button id="stopBtn" class="btn btn-danger" disabled>
+          <span class="btn-icon">⏹</span>
+          Arrêter
+        </button>
+      </div>
+
+      <div class="mic-controls">
+        <label class="mic-label" for="micSelect">Microphone</label>
+        <div class="mic-actions">
+          <select id="micSelect" class="mic-select"></select>
+          <button id="micRefresh" class="btn btn-secondary btn-small">Rafraichir</button>
+        </div>
+      </div>
+
+      <div class="vad-controls" id="vadControls">
+        <div class="vad-header">
+          <span>Parametres VAD</span>
+          <span class="vad-status" id="vadStatus">Live</span>
+        </div>
+        <div class="vad-row">
+          <span class="vad-label">Seuil</span>
+          <div class="vad-actions">
+            <input class="vad-slider" type="range" min="0.1" max="0.9" step="0.05" value="0.5" data-vad="threshold" />
+            <span class="vad-value" id="vadThresholdValue">0.50</span>
+          </div>
+        </div>
+        <div class="vad-row">
+          <span class="vad-label">Silence (ms)</span>
+          <div class="vad-actions">
+            <input class="vad-slider" type="range" min="200" max="2000" step="100" value="700" data-vad="silence" />
+            <span class="vad-value" id="vadSilenceValue">700</span>
+          </div>
+        </div>
+        <div class="vad-row">
+          <span class="vad-label">Prefixe (ms)</span>
+          <div class="vad-actions">
+            <input class="vad-slider" type="range" min="0" max="1000" step="50" value="300" data-vad="prefix" />
+            <span class="vad-value" id="vadPrefixValue">300</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="vad-controls">
+        <div class="vad-header">
+          <span>Vitesse défilement</span>
+          <span class="vad-status" id="scrollSpeedValue">1.2 px/frame</span>
+        </div>
+        <div class="vad-row">
+          <span class="vad-label">Ligne suivante</span>
+          <div class="vad-actions">
+            <input
+              id="scrollSpeed"
+              class="vad-slider"
+              type="range"
+              min="0"
+              max="6"
+              step="0.1"
+              value="1.2"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div id="prompteurStats" class="prompteur-stats"></div>
+
+      <div class="audio-level-container" id="audioLevelContainer" style="display: none;">
+        <div class="audio-level-label">Niveau audio</div>
+        <div class="audio-level-bar">
+          <div class="audio-level-fill" id="audioLevel"></div>
+        </div>
+      </div>
+
+      <details class="history-panel">
+        <summary>Historique complet</summary>
+        <div id="historyContent" class="history-content"></div>
+        <button id="exportBtn" class="btn btn-secondary" style="margin-top: 1rem;">
+          Exporter (TXT)
+        </button>
+      </details>
+    </aside>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

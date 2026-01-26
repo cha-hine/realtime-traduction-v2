@@ -10,7 +10,9 @@ const CONFIG = {
   SESSION_ROTATION_MS: 55 * 60 * 1000, // 55 minutes (avant expiration 60 min)
   RECONNECT_DELAY_MS: 2000,
   MAX_DISPLAYED_SUBTITLES: 2,
-  MAX_HISTORY_ITEMS: 100
+  MAX_HISTORY_ITEMS: 100,
+  MAX_PROMPTEUR_ITEMS: 60,
+  PROMPTEUR_SCROLL_PX_PER_FRAME: 1.2
 };
 
 const VAD_SETTINGS = {
@@ -53,6 +55,12 @@ let requestCounterInterval = null;
 
 // VAD state (server-side detection)
 let isSpeaking = false;
+const IS_PROMPTEUR = document.body.classList.contains('prompteur');
+let prompteurScrollSpeed = CONFIG.PROMPTEUR_SCROLL_PX_PER_FRAME;
+let prompteurScrollRaf = null;
+let prompteurScrollY = 0;
+let prompteurListEl = null;
+const prompteurSeenKeys = new Set();
 
 // DOM Elements
 const elements = {
@@ -71,6 +79,8 @@ const elements = {
   requestCounter: null,
   micSelect: document.getElementById('micSelect'),
   micRefresh: document.getElementById('micRefresh'),
+  scrollSpeed: document.getElementById('scrollSpeed'),
+  scrollSpeedValue: document.getElementById('scrollSpeedValue'),
   vadThresholdValue: document.getElementById('vadThresholdValue'),
   vadSilenceValue: document.getElementById('vadSilenceValue'),
   vadPrefixValue: document.getElementById('vadPrefixValue'),
@@ -94,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initVadControls();
   initMicControls();
+  initPrompteurControls();
 
   // Event listeners
   elements.startBtn.addEventListener('click', startRealtime);
@@ -103,7 +114,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial state
   renderSubtitles();
   updateStatus('disconnected', 'Prêt à démarrer');
+  if (IS_PROMPTEUR) {
+    window.addEventListener('resize', () => renderSubtitles());
+  }
 });
+
+function initPrompteurControls() {
+  if (!elements.scrollSpeed || !elements.scrollSpeedValue) return;
+
+  const updateValue = (value) => {
+    elements.scrollSpeedValue.textContent = `${value} px/frame`;
+  };
+
+  elements.scrollSpeed.value = String(prompteurScrollSpeed);
+  updateValue(prompteurScrollSpeed);
+
+  elements.scrollSpeed.addEventListener('input', () => {
+    const next = parseFloat(elements.scrollSpeed.value);
+    if (!Number.isNaN(next)) {
+      prompteurScrollSpeed = next;
+      updateValue(next);
+    }
+  });
+}
 
 /**
  * Crée l'élément d'affichage du compteur de requêtes
@@ -112,14 +145,10 @@ function createRequestCounter() {
   const counter = document.createElement('div');
   counter.id = 'requestCounter';
   counter.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border: 1px solid #3498db;
     border-radius: 12px;
     padding: 15px 20px;
-    z-index: 1000;
     font-family: monospace;
     min-width: 200px;
     box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
@@ -137,7 +166,12 @@ function createRequestCounter() {
       </div>
     </div>
   `;
-  document.body.appendChild(counter);
+  const statsHost = document.getElementById('prompteurStats');
+  if (statsHost) {
+    statsHost.appendChild(counter);
+  } else {
+    document.body.appendChild(counter);
+  }
   elements.requestCounter = counter;
 }
 
@@ -148,14 +182,10 @@ function createVadIndicator() {
   const panel = document.createElement('div');
   panel.id = 'vadPanel';
   panel.style.cssText = `
-    position: fixed;
-    top: 120px;
-    right: 20px;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border: 1px solid #9b59b6;
     border-radius: 12px;
     padding: 15px 20px;
-    z-index: 1000;
     min-width: 200px;
     box-shadow: 0 4px 15px rgba(155, 89, 182, 0.2);
   `;
@@ -199,7 +229,12 @@ function createVadIndicator() {
     </div>
   `;
 
-  document.body.appendChild(panel);
+  const statsHost = document.getElementById('prompteurStats');
+  if (statsHost) {
+    statsHost.appendChild(panel);
+  } else {
+    document.body.appendChild(panel);
+  }
 }
 
 /**
@@ -733,6 +768,71 @@ function finalizeTranslation(text) {
   renderSubtitles();
 }
 
+function stopPrompteurScroll() {
+  if (prompteurScrollRaf) {
+    cancelAnimationFrame(prompteurScrollRaf);
+    prompteurScrollRaf = null;
+  }
+  prompteurScrollY = 0;
+  prompteurListEl = null;
+  prompteurSeenKeys.clear();
+}
+
+function ensurePrompteurList(container) {
+  if (prompteurListEl) return;
+  container.innerHTML = '';
+  prompteurListEl = document.createElement('div');
+  prompteurListEl.className = 'prompteur-list';
+  container.appendChild(prompteurListEl);
+  prompteurScrollY = container.clientHeight;
+}
+
+function startPrompteurAutoScroll() {
+  if (!IS_PROMPTEUR) return;
+  if (prompteurScrollRaf) return;
+
+  const tick = () => {
+    const container = elements.subtitlesContainer;
+    if (!container || !prompteurListEl) return;
+
+    const blockHeight = prompteurListEl.offsetHeight;
+    if (blockHeight > 0) {
+      prompteurScrollY -= prompteurScrollSpeed;
+      const contentBottom = prompteurScrollY + blockHeight;
+      if (contentBottom < 0) {
+        prompteurListEl.innerHTML = '';
+        prompteurSeenKeys.clear();
+        prompteurScrollY = container.clientHeight;
+      }
+    } else {
+      prompteurScrollY -= prompteurScrollSpeed;
+      if (prompteurScrollY < -container.clientHeight) {
+        prompteurScrollY = container.clientHeight;
+      }
+    }
+
+    prompteurListEl.style.transform = `translateY(${prompteurScrollY}px)`;
+    prompteurScrollRaf = requestAnimationFrame(tick);
+  };
+
+  prompteurScrollRaf = requestAnimationFrame(tick);
+}
+
+function renderPrompteurList(container, items) {
+  ensurePrompteurList(container);
+
+  items.forEach((sub) => {
+    if (prompteurSeenKeys.has(sub.timestamp)) return;
+    const div = document.createElement('div');
+    div.className = 'subtitle final';
+    div.textContent = sub.text;
+    prompteurListEl.appendChild(div);
+    prompteurSeenKeys.add(sub.timestamp);
+  });
+
+  startPrompteurAutoScroll();
+}
+
 /**
  * Gère les événements reçus via DataChannel
  */
@@ -954,6 +1054,20 @@ function addSubtitle(text) {
  */
 function renderSubtitles() {
   const container = elements.subtitlesContainer;
+
+  const maxItems = IS_PROMPTEUR
+    ? CONFIG.MAX_PROMPTEUR_ITEMS
+    : CONFIG.MAX_DISPLAYED_SUBTITLES;
+
+  const recentSubtitles = subtitles
+    .slice(-maxItems)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  if (IS_PROMPTEUR) {
+    renderPrompteurList(container, recentSubtitles);
+    return;
+  }
+
   container.innerHTML = '';
 
   if (subtitles.length === 0) {
@@ -966,17 +1080,9 @@ function renderSubtitles() {
     return;
   }
 
-  const recentSubtitles = subtitles
-    .slice(-CONFIG.MAX_DISPLAYED_SUBTITLES)
-    .sort((a, b) => a.timestamp - b.timestamp);
-
   recentSubtitles.forEach((sub, index) => {
     const div = document.createElement('div');
     div.className = 'subtitle final';
-
-    if (index === recentSubtitles.length - 1) {
-      div.style.animation = 'fadeInUp 0.4s ease forwards';
-    }
 
     div.textContent = sub.text;
     container.appendChild(div);
@@ -1110,6 +1216,7 @@ function cleanup(resetRunning = true) {
   clearTimeout(sessionRotationTimer);
 
   stopRequestCounter();
+  stopPrompteurScroll();
 
   // DataChannel
   if (dataChannel) {

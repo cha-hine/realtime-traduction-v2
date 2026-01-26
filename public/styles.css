@@ -24,11 +24,16 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: 'Aptos', 'Segoe UI', Arial, sans-serif;
   background: var(--bg-color);
   color: var(--text-color);
   min-height: 100vh;
   line-height: 1.6;
+}
+
+body.prompteur {
+  background: #0a0a0a;
+  color: #f8fafc;
 }
 
 .container {
@@ -354,7 +359,7 @@ body {
 
 .subtitles {
   padding: 0;
-  background: #000000;
+  background: #f3ead7;
   border-radius: 0;
   min-height: 200px;
   height: 200px;
@@ -364,20 +369,120 @@ body {
   overflow: hidden;
 }
 
+/* Prompteur Layout */
+.prompteur-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.prompteur-left {
+  flex: 0 0 70%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: linear-gradient(180deg, #0b0b0b 0%, #0f172a 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  height: 100vh;
+}
+
+.prompteur-right {
+  flex: 0 0 30%;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: #0b1220;
+  overflow-y: auto;
+}
+
+.prompteur-badge {
+  align-self: flex-start;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0f172a;
+  background: #22c55e;
+  font-weight: 700;
+  position: absolute;
+  top: 1.75rem;
+  left: 2.5rem;
+  z-index: 2;
+}
+
+.prompteur-subtitles {
+  position: absolute;
+  inset: 0;
+  padding: 5rem 3rem 4.5rem;
+  overflow: hidden;
+  overflow: hidden;
+}
+
+.prompteur-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  padding-top: 1rem;
+  position: absolute;
+  left: 2.5rem;
+  right: 2.5rem;
+  bottom: 1.5rem;
+  z-index: 2;
+}
+
+.prompteur-status {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+body.prompteur #requestCounter,
+body.prompteur #vadPanel {
+  position: static;
+  width: 100%;
+}
+
+.prompteur-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+body.prompteur .status-bar,
+body.prompteur .controls,
+body.prompteur .mic-controls,
+body.prompteur .vad-controls,
+body.prompteur .audio-level-container,
+body.prompteur .history-panel {
+  margin-bottom: 0;
+}
+
 .subtitle {
-  font-size: clamp(1.3rem, 3.5vh, 2.4rem);
+  font-size: 2.5rem;
   font-weight: 800;
   line-height: 1.25;
   margin: 0;
   padding: 0;
   border-radius: 0;
   text-align: center;
-  color: #ffffff;
+  color: #000000;
   /* -webkit-text-stroke: 1px #000000;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 3px 6px rgba(0, 0, 0, 0.6); */
   letter-spacing: 0.02em;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+body.prompteur .subtitle {
+  font-size: 2.5rem;
+  line-height: 1.3;
+  text-align: left;
+  padding: 0;
 }
 
 .subtitle.final {
@@ -388,10 +493,14 @@ body {
  */}
 
 .subtitle.final:last-child {
-  font-size: clamp(1.4rem, 3.6vh, 2.5rem);
+  font-size: 2.5rem;
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+body.prompteur .subtitle.final:last-child {
+  font-size: 2.5rem;
 }
 
 @keyframes subtitleAppear {
@@ -603,6 +712,23 @@ body {
     padding: 0;
   }
 
+  .prompteur-layout {
+    flex-direction: column;
+  }
+
+  .prompteur-left,
+  .prompteur-right {
+    flex: 1 1 auto;
+    width: 100%;
+    padding: 1.5rem;
+  }
+
+  .prompteur-subtitles {
+    position: static;
+    padding: 2.5rem 1.5rem 2rem;
+    height: auto;
+  }
+
   .toast-container {
     left: 1rem;
     right: 1rem;
@@ -630,4 +756,15 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+.prompteur-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  will-change: transform;
+  pointer-events: none;
 }
