@@ -910,7 +910,7 @@ function handleRealtimeEvent(event) {
     // ========== TRADUCTION (RÉPONSE DU MODÈLE) ==========
 
     // Response text delta - accumulate
-    if (msg.type === 'response.text.delta') {
+   /*  if (msg.type === 'response.text.delta') {
       if (!responseHasOutputText && !responseHasContentPart) {
         currentLine += msg.delta || '';
       }
@@ -920,12 +920,12 @@ function handleRealtimeEvent(event) {
     if (msg.type === 'response.output_text.delta') {
       responseHasOutputText = true;
       currentLine += msg.delta || '';
-    }
+    } */
 
     // Response text (output) done - display
     if (msg.type === 'response.output_text.done') {
       responseHasOutputText = true;
-      pendingFinalText = msg.text || currentLine;
+      pendingFinalText = msg.text; //|| currentLine;
     }
 
     // Audio transcript delta
@@ -937,7 +937,7 @@ function handleRealtimeEvent(event) {
 
     if (msg.type === 'response.audio_transcript.done') {
       if (!responseHasOutputText && !responseHasContentPart) {
-        pendingFinalText = msg.transcript || currentLine;
+        pendingFinalText = msg.transcript; // || currentLine;
       }
     }
 
@@ -949,7 +949,7 @@ function handleRealtimeEvent(event) {
 
     if (msg.type === 'response.output_audio_transcript.done') {
       if (!responseHasOutputText && !responseHasContentPart) {
-        pendingFinalText = msg.transcript || currentLine;
+        pendingFinalText = msg.transcript;// || currentLine;
       }
     }
 
@@ -963,7 +963,7 @@ function handleRealtimeEvent(event) {
     if (msg.type === 'response.content_part.done') {
       responseHasContentPart = true;
       if (!responseHasOutputText) {
-        pendingFinalText = msg.part?.text || currentLine;
+        pendingFinalText = msg.part?.text;// || currentLine;
       }
     }
 
