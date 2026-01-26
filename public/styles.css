@@ -32,8 +32,8 @@ body {
 }
 
 body.prompteur {
-  background: #0a0a0a;
-  color: #f8fafc;
+  background: #e9dead;
+  color: #000000;
 }
 
 .container {
@@ -381,15 +381,15 @@ body.prompteur {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  background: linear-gradient(180deg, #0b0b0b 0%, #0f172a 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #e9dead;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
   position: relative;
   height: 100vh;
 }
 
 .prompteur-right {
   flex: 0 0 30%;
-  padding: 2.5rem 2rem;
+  padding: 5px;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -436,9 +436,23 @@ body.prompteur {
   z-index: 2;
 }
 
+.prompteur-right .prompteur-footer {
+  position: static;
+  margin-bottom: 0;
+  color: #0f172a;
+  border-top: none;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.15);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .prompteur-status {
   font-weight: 600;
   color: #e2e8f0;
+}
+
+.prompteur-right .prompteur-status {
+  color: #0f172a;
 }
 
 body.prompteur #requestCounter,
@@ -486,7 +500,7 @@ body.prompteur .subtitle {
 }
 
 .subtitle.final {
-  color: #ffffff;
+  color: #000000;
   background: transparent;
   border: none;
 /*   animation: subtitleAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -517,9 +531,9 @@ body.prompteur .subtitle.final:last-child {
 }
 
 .subtitle.live {
-  color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.1);
-  border-left: 3px solid var(--primary-color);
+  color: #000000;
+  background: transparent;
+  border-left: 3px solid #000000;
   animation: fadeIn 0.3s;
   font-size: 1.8rem;
   font-weight: 500;
