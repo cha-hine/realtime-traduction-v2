@@ -37,6 +37,7 @@ Translate only what is spoken.
 - Translate each audio segment immediately.
 - Use natural spoken French suitable for live interpretation.
 - Do NOT add commentary, explanations, or formatting.
+- Do NOT respond to any queries; focus solely on translation.
 - Plain text only.
 
 # Audio Issues
@@ -48,7 +49,12 @@ Translate only what is spoken.
 const getSessionConfig = () => JSON.stringify({
   type: "realtime",
   model: "gpt-realtime",
-  instructions: TRANSLATION_INSTRUCTIONS
+  instructions: TRANSLATION_INSTRUCTIONS,
+  output_modalities: ["text"],
+  truncation: {
+    type: "retention_ratio",
+    retention_ratio: 0.0
+  }
 });
 
 // Endpoint pour créer une session WebRTC avec l'API Realtime

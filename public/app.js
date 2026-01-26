@@ -638,17 +638,40 @@ async function setupWebRTC() {
 /**
  * Demande une réponse texte au modèle
  */
+let clientRequestSeq = 0;
+let lastClientRequestId = null;
+let pendingClientResponse = false;
+const clientResponseIds = new Set();
+let commitCounter = 0;
+let lastRequestCommitCounter = 0;
+let lastCommittedItemId = null;
+const requestCommitMap = new Map();
+const responseCommitMap = new Map();
+const commitConsumed = new Map();
+
 function requestTextResponse() {
   if (!dataChannel || dataChannel.readyState !== 'open') {
     console.warn('DataChannel non disponible');
     return;
   }
 
+  const requestId = `client_${Date.now()}_${clientRequestSeq++}`;
+  lastClientRequestId = requestId;
+  pendingClientResponse = true;
+  lastRequestCommitCounter = commitCounter;
+  requestCommitMap.set(requestId, lastRequestCommitCounter);
+
   const event = {
     type: 'response.create',
     response: {
       conversation: 'none',
-      output_modalities: ['text']
+      output_modalities: ['text'],
+      metadata: {
+        source: 'client',
+        request_id: requestId,
+        commit_seq: String(lastRequestCommitCounter),
+        commit_item_id: lastCommittedItemId || ''
+      }
     }
   };
 
@@ -658,8 +681,6 @@ function requestTextResponse() {
 
 function maybeRequestResponse() {
   if (awaitingResponse) return;
-  if (pendingCommits <= 0) return;
-  pendingCommits--;
   awaitingResponse = true;
   requestTextResponse();
 }
@@ -727,7 +748,6 @@ function dbToLevel(db) {
 
 let vadDetectionCount = 0;
 let awaitingResponse = false;
-let pendingCommits = 0;
 let responseHasOutputText = false;
 let responseHasContentPart = false;
 let lastTranslationText = '';
@@ -745,7 +765,6 @@ function resetResponseBuffers() {
 function maybeFlushDeferredFinal() {
   if (isSpeaking) return;
   if (awaitingResponse) return;
-  if (pendingCommits > 0) return;
   if (!deferredFinalText) return;
 
   finalizeTranslation(deferredFinalText);
@@ -757,8 +776,36 @@ function finalizeTranslation(text) {
   if (!trimmed) return;
 
   const now = Date.now();
-  if (trimmed === lastTranslationText && (now - lastTranslationAt) < 2000) {
+  if (trimmed === lastTranslationText && (now - lastTranslationAt) < 8000) {
     return;
+  }
+
+  const normalizeTranslation = (value) => value
+    .toLowerCase()
+    .replace(/[\t\n\r]+/g, ' ')
+    .replace(/[.,!?;:'"()[\]{}-]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const lastSubtitle = subtitles[subtitles.length - 1];
+  if (lastSubtitle) {
+    const recent = (now - lastSubtitle.timestamp) < 6000;
+    const nextNorm = normalizeTranslation(trimmed);
+    const lastNorm = normalizeTranslation(lastSubtitle.text);
+    const sameOrExt = nextNorm === lastNorm ||
+      nextNorm.startsWith(lastNorm) ||
+      lastNorm.startsWith(nextNorm);
+
+    if (recent && sameOrExt) {
+      if (trimmed.length > lastSubtitle.text.length) {
+        lastSubtitle.text = trimmed;
+        updateHistory();
+        renderSubtitles();
+      }
+      lastTranslationText = trimmed;
+      lastTranslationAt = now;
+      return;
+    }
   }
 
   lastTranslationText = trimmed;
@@ -860,8 +907,29 @@ function handleRealtimeEvent(event) {
     }
 
     if (msg.type === 'response.created') {
-      awaitingResponse = true;
-      resetResponseBuffers();
+      const responseMeta = msg.response?.metadata;
+      const isClientResponse = responseMeta?.source === 'client' &&
+        responseMeta?.request_id === lastClientRequestId;
+
+      if (isClientResponse || (pendingClientResponse && !responseMeta)) {
+        pendingClientResponse = false;
+        if (msg.response?.id) {
+          clientResponseIds.add(msg.response.id);
+          const commitId = responseMeta?.request_id
+            ? (requestCommitMap.get(responseMeta.request_id) ?? lastRequestCommitCounter)
+            : lastRequestCommitCounter;
+          responseCommitMap.set(msg.response.id, commitId);
+        }
+        awaitingResponse = true;
+        resetResponseBuffers();
+      } else {
+        return;
+      }
+    }
+
+    const responseId = msg.response_id || msg.response?.id;
+    if (responseId && !clientResponseIds.has(responseId)) {
+      return;
     }
 
     // ========== DÉTECTION VOCALE (Server VAD) ==========
@@ -896,8 +964,16 @@ function handleRealtimeEvent(event) {
 
     if (msg.type === 'input_audio_buffer.committed') {
       console.log('🎙️ Audio envoyé pour traitement...');
+      lastCommittedItemId = msg.item_id || null;
+      commitCounter += 1;
+      commitConsumed.set(commitCounter, false);
+      const pruneBefore = commitCounter - 10;
+      for (const key of commitConsumed.keys()) {
+        if (key < pruneBefore) {
+          commitConsumed.delete(key);
+        }
+      }
       incrementRequestCount();
-      pendingCommits++;
       maybeRequestResponse();
     }
 
@@ -910,7 +986,7 @@ function handleRealtimeEvent(event) {
     // ========== TRADUCTION (RÉPONSE DU MODÈLE) ==========
 
     // Response text delta - accumulate
-   /*  if (msg.type === 'response.text.delta') {
+    if (msg.type === 'response.text.delta') {
       if (!responseHasOutputText && !responseHasContentPart) {
         currentLine += msg.delta || '';
       }
@@ -920,7 +996,7 @@ function handleRealtimeEvent(event) {
     if (msg.type === 'response.output_text.delta') {
       responseHasOutputText = true;
       currentLine += msg.delta || '';
-    } */
+    }
 
     // Response text (output) done - display
     if (msg.type === 'response.output_text.done') {
@@ -970,16 +1046,46 @@ function handleRealtimeEvent(event) {
     // Réponse terminée
     if (msg.type === 'response.done') {
       awaitingResponse = false;
+      const wasCancelled = msg.response?.status === 'cancelled' ||
+        msg.response?.status_details?.type === 'cancelled';
       const finalText = pendingFinalText || currentLine;
-      if (isSpeaking || pendingCommits > 0) {
+      const trimmedFinal = (finalText || '').trim();
+      const commitId = responseId ? responseCommitMap.get(responseId) : null;
+      const alreadyConsumed = commitId ? commitConsumed.get(commitId) : false;
+      if (wasCancelled && !finalText.trim()) {
+        resetResponseBuffers();
+        console.log('ðŸ“¦ RÃ©ponse annulÃ©e (vide)');
+        if (responseId) {
+          clientResponseIds.delete(responseId);
+          responseCommitMap.delete(responseId);
+        }
+        maybeFlushDeferredFinal();
+        return;
+      }
+      if (alreadyConsumed && trimmedFinal) {
+        resetResponseBuffers();
+        if (responseId) {
+          clientResponseIds.delete(responseId);
+          responseCommitMap.delete(responseId);
+        }
+        maybeFlushDeferredFinal();
+        return;
+      }
+      if (commitId && trimmedFinal) {
+        commitConsumed.set(commitId, true);
+      }
+      if (isSpeaking) {
         deferredFinalText = finalText;
       } else {
         deferredFinalText = '';
         finalizeTranslation(finalText);
       }
       resetResponseBuffers();
+      if (responseId) {
+        clientResponseIds.delete(responseId);
+        responseCommitMap.delete(responseId);
+      }
       console.log('📦 Réponse complète');
-      maybeRequestResponse();
       maybeFlushDeferredFinal();
     }
 
@@ -1000,9 +1106,6 @@ function handleRealtimeEvent(event) {
         }
       }
       if (msg.error?.code === 'conversation_already_has_active_response') {
-        if (pendingCommits == 0) {
-          pendingCommits = 1;
-        }
         awaitingResponse = true;
         return;
       }
@@ -1254,7 +1357,6 @@ function cleanup(resetRunning = true) {
   isSpeaking = false;
   currentLine = '';
   awaitingResponse = false;
-  pendingCommits = 0;
   deferredFinalText = '';
   sessionReady = false;
   vadUpdateSupported = false;
