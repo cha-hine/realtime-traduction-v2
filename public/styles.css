@@ -216,6 +216,7 @@ body.prompteur {
 }
 
 .vad-value {
+  color: white;
   min-width: 64px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -392,7 +393,7 @@ body.prompteur {
   padding: 5px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   background: #0b1220;
   overflow-y: auto;
 }
@@ -777,6 +778,31 @@ body.prompteur .subtitle.final:last-child {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+/* Mode noir pour le prompteur */
+body.prompteur.dark {
+  background: #000000;
+  color: #ffffff;
+}
+
+body.prompteur.dark .prompteur-left {
+  background: #000000;
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+body.prompteur.dark .subtitle,
+body.prompteur.dark .subtitle.final,
+body.prompteur.dark .subtitle.live {
+  color: #ffffff;
+}
+
+body.prompteur.dark .subtitle.final + .subtitle.final {
+  border-top-color: rgba(255, 255, 255, 0.25);
+}
+
+body.prompteur.dark .subtitle.live {
+  border-left-color: #ffffff;
+}
+
 .prompteur-list {
   position: absolute;
   left: 0;

@@ -17,13 +17,13 @@ const CONFIG = {
 
 const VAD_SETTINGS = {
   threshold: 0.5,
-  silenceMs: 700,
-  prefixMs: 300
+  silenceMs: 500,
+  prefixMs: 250
 };
 
 const VAD_LIMITS = {
   threshold: { min: 0.1, max: 0.9, step: 0.05 },
-  silenceMs: { min: 200, max: 2000, step: 100 },
+  silenceMs: { min: 100, max: 2000, step: 100 },
   prefixMs: { min: 0, max: 1000, step: 50 }
 };
 
@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initVadControls();
   initMicControls();
   initPrompteurControls();
+  initThemeToggle();
 
   // Event listeners
   elements.startBtn.addEventListener('click', startRealtime);
@@ -118,6 +119,33 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => renderSubtitles());
   }
 });
+
+function initThemeToggle() {
+  const btn = document.getElementById('themeToggleBtn');
+  const icon = document.getElementById('themeToggleIcon');
+  const label = document.getElementById('themeToggleLabel');
+  if (!btn) return;
+
+  const applyTheme = (dark) => {
+    document.body.classList.toggle('dark', dark);
+    if (dark) {
+      icon.textContent = '☀️';
+      label.textContent = 'Mode beige';
+    } else {
+      icon.textContent = '🌙';
+      label.textContent = 'Mode noir';
+    }
+  };
+
+  // Restaurer la préférence sauvegardée
+  applyTheme(localStorage.getItem('prompteur-dark') === '1');
+
+  btn.addEventListener('click', () => {
+    const isDark = !document.body.classList.contains('dark');
+    applyTheme(isDark);
+    localStorage.setItem('prompteur-dark', isDark ? '1' : '0');
+  });
+}
 
 function initPrompteurControls() {
   if (!elements.scrollSpeed || !elements.scrollSpeedValue) return;

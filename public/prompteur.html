@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Traduction Prompteur - Urdu/Hindi → Français</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body class="prompteur">
   <div class="prompteur-layout">
     <section class="prompteur-left">
@@ -34,6 +36,13 @@
         <button id="stopBtn" class="btn btn-danger" disabled>
           <span class="btn-icon">⏹</span>
           Arrêter
+        </button>
+      </div>
+
+      <div class="controls">
+        <button id="themeToggleBtn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+          <span id="themeToggleIcon">🌙</span>
+          <span id="themeToggleLabel">Mode noir</span>
         </button>
       </div>
 
@@ -81,15 +90,7 @@
         <div class="vad-row">
           <span class="vad-label">Ligne suivante</span>
           <div class="vad-actions">
-            <input
-              id="scrollSpeed"
-              class="vad-slider"
-              type="range"
-              min="0"
-              max="6"
-              step="0.1"
-              value="1.2"
-            />
+            <input id="scrollSpeed" class="vad-slider" type="range" min="0" max="6" step="0.1" value="1.2" />
           </div>
         </div>
       </div>
@@ -117,4 +118,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>
