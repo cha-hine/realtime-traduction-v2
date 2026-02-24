@@ -46,6 +46,19 @@
         </button>
       </div>
 
+      <div class="vad-controls">
+        <div class="vad-header">
+          <span>Taille du texte</span>
+          <span class="vad-status" id="fontSizeValue">3.5 rem</span>
+        </div>
+        <div class="vad-row">
+          <div class="vad-actions" style="gap: 0.5rem; width: 100%; justify-content: center;">
+            <button id="fontDecrBtn" class="btn btn-secondary btn-small" style="flex: 1; justify-content: center;">A−</button>
+            <button id="fontIncrBtn" class="btn btn-secondary btn-small" style="flex: 1; justify-content: center;">A+</button>
+          </div>
+        </div>
+      </div>
+
       <div class="mic-controls">
         <label class="mic-label" for="micSelect">Microphone</label>
         <div class="mic-actions">
@@ -117,6 +130,38 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <script src="app.js"></script>
+  <script>
+    (function () {
+      let fontSize = 3.5;
+      const step = 0.25;
+      const min = 1;
+      const max = 8;
+
+      function applyFontSize() {
+        document.querySelectorAll('.subtitle').forEach(el => {
+          el.style.fontSize = fontSize + 'rem';
+        });
+        document.getElementById('fontSizeValue').textContent = fontSize.toFixed(2) + ' rem';
+
+        // Appliquer aussi aux nouvelles subtitles via une règle CSS dynamique
+        let style = document.getElementById('dynamic-font-style');
+        if (!style) {
+          style = document.createElement('style');
+          style.id = 'dynamic-font-style';
+          document.head.appendChild(style);
+        }
+        style.textContent = `.subtitle { font-size: ${fontSize}rem !important; }`;
+      }
+
+      document.getElementById('fontIncrBtn').addEventListener('click', function () {
+        if (fontSize < max) { fontSize = Math.round((fontSize + step) * 100) / 100; applyFontSize(); }
+      });
+
+      document.getElementById('fontDecrBtn').addEventListener('click', function () {
+        if (fontSize > min) { fontSize = Math.round((fontSize - step) * 100) / 100; applyFontSize(); }
+      });
+    })();
+  </script>
 </body>
 
 </html>
