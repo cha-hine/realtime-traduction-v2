@@ -16,14 +16,11 @@ const CONFIG = {
 };
 
 const VAD_SETTINGS = {
-  threshold: 0.5,
-  silenceMs: 500,
+  eagerness: 'high',
   prefixMs: 250
 };
 
 const VAD_LIMITS = {
-  threshold: { min: 0.1, max: 0.9, step: 0.05 },
-  silenceMs: { min: 100, max: 2000, step: 100 },
   prefixMs: { min: 0, max: 1000, step: 50 }
 };
 
@@ -81,12 +78,9 @@ const elements = {
   micRefresh: document.getElementById('micRefresh'),
   scrollSpeed: document.getElementById('scrollSpeed'),
   scrollSpeedValue: document.getElementById('scrollSpeedValue'),
-  vadThresholdValue: document.getElementById('vadThresholdValue'),
-  vadSilenceValue: document.getElementById('vadSilenceValue'),
+  vadEagerness: document.getElementById('vadEagerness'),
   vadPrefixValue: document.getElementById('vadPrefixValue'),
   vadStatus: document.getElementById('vadStatus'),
-  vadThresholdSlider: document.querySelector('[data-vad="threshold"]'),
-  vadSilenceSlider: document.querySelector('[data-vad="silence"]'),
   vadPrefixSlider: document.querySelector('[data-vad="prefix"]')
 };
 
@@ -231,7 +225,7 @@ function createVadIndicator() {
       "></div>
     </div>
     <div style="color: #888; font-size: 11px; text-align: center;">
-      Mode: Server VAD (OpenAI)
+      Mode: Semantic VAD (OpenAI)
     </div>
     <!-- Indicateur de niveau audio -->
     <div style="margin-top: 15px;">
@@ -273,17 +267,8 @@ function clamp(value, min, max) {
 }
 
 function updateVadDisplay() {
-  if (elements.vadThresholdSlider) {
-    elements.vadThresholdSlider.value = String(VAD_SETTINGS.threshold);
-  }
-  if (elements.vadThresholdValue) {
-    elements.vadThresholdValue.textContent = VAD_SETTINGS.threshold.toFixed(2);
-  }
-  if (elements.vadSilenceSlider) {
-    elements.vadSilenceSlider.value = String(VAD_SETTINGS.silenceMs);
-  }
-  if (elements.vadSilenceValue) {
-    elements.vadSilenceValue.textContent = String(VAD_SETTINGS.silenceMs);
+  if (elements.vadEagerness) {
+    elements.vadEagerness.value = VAD_SETTINGS.eagerness;
   }
   if (elements.vadPrefixSlider) {
     elements.vadPrefixSlider.value = String(VAD_SETTINGS.prefixMs);
@@ -322,9 +307,8 @@ function sendVadUpdate() {
     session: {
       type: 'realtime',
       turn_detection: {
-        type: 'server_vad',
-        threshold: VAD_SETTINGS.threshold,
-        silence_duration_ms: VAD_SETTINGS.silenceMs,
+        type: 'semantic_vad',
+        eagerness: VAD_SETTINGS.eagerness,
         prefix_padding_ms: VAD_SETTINGS.prefixMs
       }
     }
@@ -336,23 +320,24 @@ function sendVadUpdate() {
 function initVadControls() {
   updateVadDisplay();
 
-  document.querySelectorAll('[data-vad]').forEach((slider) => {
-    slider.addEventListener('input', () => {
-      const type = slider.dataset.vad;
-      const value = parseFloat(slider.value);
+  if (elements.vadEagerness) {
+    elements.vadEagerness.addEventListener('change', () => {
+      VAD_SETTINGS.eagerness = elements.vadEagerness.value;
+      sendVadUpdate();
+    });
+  }
 
-      if (type === 'threshold') {
-        VAD_SETTINGS.threshold = clamp(value, VAD_LIMITS.threshold.min, VAD_LIMITS.threshold.max);
-      } else if (type === 'silence') {
-        VAD_SETTINGS.silenceMs = Math.round(clamp(value, VAD_LIMITS.silenceMs.min, VAD_LIMITS.silenceMs.max));
-      } else if (type === 'prefix') {
-        VAD_SETTINGS.prefixMs = Math.round(clamp(value, VAD_LIMITS.prefixMs.min, VAD_LIMITS.prefixMs.max));
-      }
-
+  if (elements.vadPrefixSlider) {
+    elements.vadPrefixSlider.addEventListener('input', () => {
+      VAD_SETTINGS.prefixMs = Math.round(clamp(
+        parseFloat(elements.vadPrefixSlider.value),
+        VAD_LIMITS.prefixMs.min,
+        VAD_LIMITS.prefixMs.max
+      ));
       updateVadDisplay();
       sendVadUpdate();
     });
-  });
+  }
 }
 
 async function refreshMicrophones(requestPermission) {
@@ -799,6 +784,7 @@ function maybeFlushDeferredFinal() {
   deferredFinalText = '';
 }
 
+
 function finalizeTranslation(text) {
   const trimmed = (text || '').trim();
   if (!trimmed) return;
@@ -839,6 +825,7 @@ function finalizeTranslation(text) {
   lastTranslationText = trimmed;
   lastTranslationAt = now;
   console.log('TRADUCTION:', trimmed);
+
   addSubtitle(trimmed);
   renderSubtitles();
 }
@@ -939,7 +926,7 @@ function handleRealtimeEvent(event) {
       const isClientResponse = responseMeta?.source === 'client' &&
         responseMeta?.request_id === lastClientRequestId;
 
-      if (isClientResponse || (pendingClientResponse && !responseMeta)) {
+      if (isClientResponse) {
         pendingClientResponse = false;
         if (msg.response?.id) {
           clientResponseIds.add(msg.response.id);
@@ -1022,6 +1009,7 @@ function handleRealtimeEvent(event) {
 
     // Response text (output) delta
     if (msg.type === 'response.output_text.delta') {
+      if (!responseHasOutputText) currentLine = ''; // discard any text.delta accumulation
       responseHasOutputText = true;
       currentLine += msg.delta || '';
     }
@@ -1029,7 +1017,7 @@ function handleRealtimeEvent(event) {
     // Response text (output) done - display
     if (msg.type === 'response.output_text.done') {
       responseHasOutputText = true;
-      pendingFinalText = msg.text; //|| currentLine;
+      pendingFinalText = msg.text || currentLine;
     }
 
     // Audio transcript delta
@@ -1041,7 +1029,7 @@ function handleRealtimeEvent(event) {
 
     if (msg.type === 'response.audio_transcript.done') {
       if (!responseHasOutputText && !responseHasContentPart) {
-        pendingFinalText = msg.transcript; // || currentLine;
+        pendingFinalText = msg.transcript || currentLine;
       }
     }
 
@@ -1053,7 +1041,7 @@ function handleRealtimeEvent(event) {
 
     if (msg.type === 'response.output_audio_transcript.done') {
       if (!responseHasOutputText && !responseHasContentPart) {
-        pendingFinalText = msg.transcript;// || currentLine;
+        pendingFinalText = msg.transcript || currentLine;
       }
     }
 
@@ -1067,7 +1055,7 @@ function handleRealtimeEvent(event) {
     if (msg.type === 'response.content_part.done') {
       responseHasContentPart = true;
       if (!responseHasOutputText) {
-        pendingFinalText = msg.part?.text;// || currentLine;
+        pendingFinalText = msg.part?.text || currentLine;
       }
     }
 
