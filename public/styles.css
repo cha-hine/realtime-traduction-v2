@@ -222,6 +222,22 @@ body.prompteur {
   font-variant-numeric: tabular-nums;
 }
 
+.vad-select {
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.vad-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
 .vad-slider {
   width: 220px;
 }
@@ -578,37 +594,6 @@ body.prompteur .subtitle.final:last-child {
   }
 }
 
-.subtitle.live {
-  color: #000000;
-  background: transparent;
-  border-left: 3px solid #000000;
-  animation: fadeIn 0.3s;
-  font-size: 1.8rem;
-  font-weight: 500;
-}
-
-.subtitle.live.typing {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 2px;
-}
-
-.subtitle.live .typing-text {
-  display: inline;
-}
-
-.subtitle.live .cursor {
-  display: inline-block;
-  color: var(--primary-color);
-  font-weight: bold;
-  animation: cursor-blink 0.8s infinite;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 @keyframes fadeInUp {
   from {
@@ -621,10 +606,6 @@ body.prompteur .subtitle.final:last-child {
   }
 }
 
-@keyframes cursor-blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
 
 /* Container pour les sous-titres finaux */
 .finals-container {
@@ -831,8 +812,7 @@ body.prompteur.dark .prompteur-left {
 }
 
 body.prompteur.dark .subtitle,
-body.prompteur.dark .subtitle.final,
-body.prompteur.dark .subtitle.live {
+body.prompteur.dark .subtitle.final {
   color: #ffffff;
 }
 
@@ -840,8 +820,13 @@ body.prompteur.dark .subtitle.final + .subtitle.final {
   border-top-color: rgba(255, 255, 255, 0.25);
 }
 
-body.prompteur.dark .subtitle.live {
-  border-left-color: #ffffff;
+/* Layout 50/50 toggle */
+.prompteur-layout.layout-50 .prompteur-left {
+  flex: 0 0 50%;
+}
+
+.prompteur-layout.layout-50 .prompteur-right {
+  flex: 0 0 50%;
 }
 
 .prompteur-list {

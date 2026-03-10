@@ -46,6 +46,12 @@
         </button>
       </div>
 
+      <div class="controls">
+        <button id="layoutToggleBtn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+          <span id="layoutToggleLabel">⇔ 50 / 50</span>
+        </button>
+      </div>
+
       <div class="vad-controls">
         <div class="vad-header">
           <span>Taille du texte</span>
@@ -69,28 +75,25 @@
 
       <div class="vad-controls" id="vadControls">
         <div class="vad-header">
-          <span>Parametres VAD</span>
+          <span>Semantic VAD</span>
           <span class="vad-status" id="vadStatus">Live</span>
         </div>
         <div class="vad-row">
-          <span class="vad-label">Seuil</span>
+          <span class="vad-label">Réactivité</span>
           <div class="vad-actions">
-            <input class="vad-slider" type="range" min="0.1" max="0.9" step="0.05" value="0.5" data-vad="threshold" />
-            <span class="vad-value" id="vadThresholdValue">0.50</span>
-          </div>
-        </div>
-        <div class="vad-row">
-          <span class="vad-label">Silence (ms)</span>
-          <div class="vad-actions">
-            <input class="vad-slider" type="range" min="200" max="2000" step="100" value="700" data-vad="silence" />
-            <span class="vad-value" id="vadSilenceValue">700</span>
+            <select class="vad-select" id="vadEagerness" data-vad="eagerness">
+              <option value="low">Faible</option>
+              <option value="medium">Moyenne</option>
+              <option value="high" selected>Élevée</option>
+              <option value="auto">Auto</option>
+            </select>
           </div>
         </div>
         <div class="vad-row">
           <span class="vad-label">Prefixe (ms)</span>
           <div class="vad-actions">
-            <input class="vad-slider" type="range" min="0" max="1000" step="50" value="300" data-vad="prefix" />
-            <span class="vad-value" id="vadPrefixValue">300</span>
+            <input class="vad-slider" type="range" min="0" max="1000" step="50" value="250" data-vad="prefix" />
+            <span class="vad-value" id="vadPrefixValue">250</span>
           </div>
         </div>
       </div>
@@ -159,6 +162,16 @@
 
       document.getElementById('fontDecrBtn').addEventListener('click', function () {
         if (fontSize > min) { fontSize = Math.round((fontSize - step) * 100) / 100; applyFontSize(); }
+      });
+
+      // Layout toggle 70/30 ↔ 50/50
+      let is5050 = false;
+      const layoutBtn = document.getElementById('layoutToggleBtn');
+      const layoutLabel = document.getElementById('layoutToggleLabel');
+      layoutBtn.addEventListener('click', function () {
+        is5050 = !is5050;
+        document.querySelector('.prompteur-layout').classList.toggle('layout-50', is5050);
+        layoutLabel.textContent = is5050 ? '⇔ 70 / 30' : '⇔ 50 / 50';
       });
     })();
   </script>
