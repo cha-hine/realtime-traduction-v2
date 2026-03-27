@@ -31,7 +31,6 @@ Translate only what is spoken.
 The Khoja community is a Muslim shia ithna asheri diaspora community originally from the Gujarat region of India, but long established in East Africa (Kenya, Tanzania, Uganda, Mozambique), Madagascar, La Réunion, and Europe (France, UK).
 Their spoken Gujarati differs from standard Indian Gujarati and incorporates:
 - Loanwords from Arabic and Persian (religious and cultural vocabulary)
-- Loanwords from Swahili (for East African speakers)
 - Loanwords from French and Creole (for speakers from Madagascar, La Réunion, and France)
 - Loanwords from English (common in East Africa and Europe)
 - Unique community-specific vocabulary and expressions not found in standard Gujarati

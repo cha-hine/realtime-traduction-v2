@@ -12,16 +12,16 @@ const CONFIG = {
   MAX_DISPLAYED_SUBTITLES: 2,
   MAX_HISTORY_ITEMS: 100,
   MAX_PROMPTEUR_ITEMS: 60,
-  PROMPTEUR_SCROLL_PX_PER_FRAME: 1.2
+  PROMPTEUR_SCROLL_PX_PER_FRAME: 1.2,
 };
 
 const VAD_SETTINGS = {
-  eagerness: 'high',
-  prefixMs: 250
+  eagerness: "low",
+  prefixMs: 500,
 };
 
 const VAD_LIMITS = {
-  prefixMs: { min: 0, max: 1000, step: 50 }
+  prefixMs: { min: 0, max: 1000, step: 50 },
 };
 
 // ==========================================
@@ -42,7 +42,7 @@ let vadSupportChecked = false;
 let selectedMicId = null;
 
 // Subtitles state
-let currentLine = '';
+let currentLine = "";
 let subtitles = [];
 
 // Compteur de requêtes
@@ -52,7 +52,7 @@ let requestCounterInterval = null;
 
 // VAD state (server-side detection)
 let isSpeaking = false;
-const IS_PROMPTEUR = document.body.classList.contains('prompteur');
+const IS_PROMPTEUR = document.body.classList.contains("prompteur");
 let prompteurScrollSpeed = CONFIG.PROMPTEUR_SCROLL_PX_PER_FRAME;
 let prompteurScrollRaf = null;
 let prompteurScrollY = 0;
@@ -61,34 +61,34 @@ const prompteurSeenKeys = new Set();
 
 // DOM Elements
 const elements = {
-  startBtn: document.getElementById('startBtn'),
-  stopBtn: document.getElementById('stopBtn'),
-  statusIndicator: document.getElementById('statusIndicator'),
-  statusText: document.getElementById('statusText'),
+  startBtn: document.getElementById("startBtn"),
+  stopBtn: document.getElementById("stopBtn"),
+  statusIndicator: document.getElementById("statusIndicator"),
+  statusText: document.getElementById("statusText"),
   statusDot: null,
-  sessionInfo: document.getElementById('sessionInfo'),
-  subtitlesContainer: document.getElementById('subtitles'),
-  audioLevelContainer: document.getElementById('audioLevelContainer'),
-  audioLevel: document.getElementById('audioLevel'),
-  historyContent: document.getElementById('historyContent'),
-  exportBtn: document.getElementById('exportBtn'),
-  toastContainer: document.getElementById('toastContainer'),
+  sessionInfo: document.getElementById("sessionInfo"),
+  subtitlesContainer: document.getElementById("subtitles"),
+  audioLevelContainer: document.getElementById("audioLevelContainer"),
+  audioLevel: document.getElementById("audioLevel"),
+  historyContent: document.getElementById("historyContent"),
+  exportBtn: document.getElementById("exportBtn"),
+  toastContainer: document.getElementById("toastContainer"),
   requestCounter: null,
-  micSelect: document.getElementById('micSelect'),
-  micRefresh: document.getElementById('micRefresh'),
-  scrollSpeed: document.getElementById('scrollSpeed'),
-  scrollSpeedValue: document.getElementById('scrollSpeedValue'),
-  vadEagerness: document.getElementById('vadEagerness'),
-  vadPrefixValue: document.getElementById('vadPrefixValue'),
-  vadStatus: document.getElementById('vadStatus'),
-  vadPrefixSlider: document.querySelector('[data-vad="prefix"]')
+  micSelect: document.getElementById("micSelect"),
+  micRefresh: document.getElementById("micRefresh"),
+  scrollSpeed: document.getElementById("scrollSpeed"),
+  scrollSpeedValue: document.getElementById("scrollSpeedValue"),
+  vadEagerness: document.getElementById("vadEagerness"),
+  vadPrefixValue: document.getElementById("vadPrefixValue"),
+  vadStatus: document.getElementById("vadStatus"),
+  vadPrefixSlider: document.querySelector('[data-vad="prefix"]'),
 };
 
 // ==========================================
 // Initialization
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  elements.statusDot = elements.statusIndicator.querySelector('.status-dot');
+document.addEventListener("DOMContentLoaded", () => {
+  elements.statusDot = elements.statusIndicator.querySelector(".status-dot");
 
   // Créer le compteur de requêtes
   createRequestCounter();
@@ -102,42 +102,42 @@ document.addEventListener('DOMContentLoaded', () => {
   initThemeToggle();
 
   // Event listeners
-  elements.startBtn.addEventListener('click', startRealtime);
-  elements.stopBtn.addEventListener('click', stopRealtime);
-  elements.exportBtn.addEventListener('click', exportHistory);
+  elements.startBtn.addEventListener("click", startRealtime);
+  elements.stopBtn.addEventListener("click", stopRealtime);
+  elements.exportBtn.addEventListener("click", exportHistory);
 
   // Initial state
   renderSubtitles();
-  updateStatus('disconnected', 'Prêt à démarrer');
+  updateStatus("disconnected", "Prêt à démarrer");
   if (IS_PROMPTEUR) {
-    window.addEventListener('resize', () => renderSubtitles());
+    window.addEventListener("resize", () => renderSubtitles());
   }
 });
 
 function initThemeToggle() {
-  const btn = document.getElementById('themeToggleBtn');
-  const icon = document.getElementById('themeToggleIcon');
-  const label = document.getElementById('themeToggleLabel');
+  const btn = document.getElementById("themeToggleBtn");
+  const icon = document.getElementById("themeToggleIcon");
+  const label = document.getElementById("themeToggleLabel");
   if (!btn) return;
 
   const applyTheme = (dark) => {
-    document.body.classList.toggle('dark', dark);
+    document.body.classList.toggle("dark", dark);
     if (dark) {
-      icon.textContent = '☀️';
-      label.textContent = 'Mode beige';
+      icon.textContent = "☀️";
+      label.textContent = "Mode beige";
     } else {
-      icon.textContent = '🌙';
-      label.textContent = 'Mode noir';
+      icon.textContent = "🌙";
+      label.textContent = "Mode noir";
     }
   };
 
   // Restaurer la préférence sauvegardée
-  applyTheme(localStorage.getItem('prompteur-dark') === '1');
+  applyTheme(localStorage.getItem("prompteur-dark") === "1");
 
-  btn.addEventListener('click', () => {
-    const isDark = !document.body.classList.contains('dark');
+  btn.addEventListener("click", () => {
+    const isDark = !document.body.classList.contains("dark");
     applyTheme(isDark);
-    localStorage.setItem('prompteur-dark', isDark ? '1' : '0');
+    localStorage.setItem("prompteur-dark", isDark ? "1" : "0");
   });
 }
 
@@ -151,11 +151,36 @@ function initPrompteurControls() {
   elements.scrollSpeed.value = String(prompteurScrollSpeed);
   updateValue(prompteurScrollSpeed);
 
-  elements.scrollSpeed.addEventListener('input', () => {
+  elements.scrollSpeed.addEventListener("input", () => {
     const next = parseFloat(elements.scrollSpeed.value);
     if (!Number.isNaN(next)) {
       prompteurScrollSpeed = next;
       updateValue(next);
+    }
+  });
+
+  // Contrôle vitesse via touches gauche/droite et pointeur de diapo USB (PageUp/PageDown)
+  const speedStep = 0.1;
+  const speedMin = 0;
+  const speedMax = 6;
+
+  document.addEventListener("keydown", (e) => {
+    // Ignorer si focus sur un input/select/textarea
+    if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+
+    let changed = false;
+    if (e.key === "ArrowRight" || e.key === "PageDown") {
+      prompteurScrollSpeed = Math.min(speedMax, Math.round((prompteurScrollSpeed + speedStep) * 10) / 10);
+      changed = true;
+    } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+      prompteurScrollSpeed = Math.max(speedMin, Math.round((prompteurScrollSpeed - speedStep) * 10) / 10);
+      changed = true;
+    }
+
+    if (changed) {
+      e.preventDefault();
+      elements.scrollSpeed.value = String(prompteurScrollSpeed);
+      updateValue(prompteurScrollSpeed);
     }
   });
 }
@@ -164,8 +189,8 @@ function initPrompteurControls() {
  * Crée l'élément d'affichage du compteur de requêtes
  */
 function createRequestCounter() {
-  const counter = document.createElement('div');
-  counter.id = 'requestCounter';
+  const counter = document.createElement("div");
+  counter.id = "requestCounter";
   counter.style.cssText = `
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border: 1px solid #3498db;
@@ -188,7 +213,7 @@ function createRequestCounter() {
       </div>
     </div>
   `;
-  const statsHost = document.getElementById('prompteurStats');
+  const statsHost = document.getElementById("prompteurStats");
   if (statsHost) {
     statsHost.appendChild(counter);
   } else {
@@ -201,8 +226,8 @@ function createRequestCounter() {
  * Crée l'indicateur VAD simplifié (détection serveur)
  */
 function createVadIndicator() {
-  const panel = document.createElement('div');
-  panel.id = 'vadPanel';
+  const panel = document.createElement("div");
+  panel.id = "vadPanel";
   panel.style.cssText = `
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border: 1px solid #9b59b6;
@@ -251,7 +276,7 @@ function createVadIndicator() {
     </div>
   `;
 
-  const statsHost = document.getElementById('prompteurStats');
+  const statsHost = document.getElementById("prompteurStats");
   if (statsHost) {
     statsHost.appendChild(panel);
   } else {
@@ -283,35 +308,38 @@ function setVadUpdateSupported(supported) {
   vadSupportChecked = true;
 
   if (elements.vadStatus) {
-    elements.vadStatus.textContent = supported ? 'Live' : 'Unsupported';
+    elements.vadStatus.textContent = supported ? "Live" : "Unsupported";
   }
 
-  document.querySelectorAll('[data-vad]').forEach((slider) => {
+  document.querySelectorAll("[data-vad]").forEach((slider) => {
     slider.disabled = !supported;
   });
 }
 
 function maybeEnableVadUpdates(session) {
   if (vadSupportChecked) return;
-  if (session && Object.prototype.hasOwnProperty.call(session, 'turn_detection')) {
+  if (
+    session &&
+    Object.prototype.hasOwnProperty.call(session, "turn_detection")
+  ) {
     setVadUpdateSupported(true);
   }
 }
 
 function sendVadUpdate() {
-  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  if (!dataChannel || dataChannel.readyState !== "open") return;
   if (!sessionReady || !vadUpdateSupported) return;
 
   const event = {
-    type: 'session.update',
+    type: "session.update",
     session: {
-      type: 'realtime',
+      type: "realtime",
       turn_detection: {
-        type: 'semantic_vad',
+        type: "semantic_vad",
         eagerness: VAD_SETTINGS.eagerness,
-        prefix_padding_ms: VAD_SETTINGS.prefixMs
-      }
-    }
+        prefix_padding_ms: VAD_SETTINGS.prefixMs,
+      },
+    },
   };
 
   dataChannel.send(JSON.stringify(event));
@@ -321,19 +349,21 @@ function initVadControls() {
   updateVadDisplay();
 
   if (elements.vadEagerness) {
-    elements.vadEagerness.addEventListener('change', () => {
+    elements.vadEagerness.addEventListener("change", () => {
       VAD_SETTINGS.eagerness = elements.vadEagerness.value;
       sendVadUpdate();
     });
   }
 
   if (elements.vadPrefixSlider) {
-    elements.vadPrefixSlider.addEventListener('input', () => {
-      VAD_SETTINGS.prefixMs = Math.round(clamp(
-        parseFloat(elements.vadPrefixSlider.value),
-        VAD_LIMITS.prefixMs.min,
-        VAD_LIMITS.prefixMs.max
-      ));
+    elements.vadPrefixSlider.addEventListener("input", () => {
+      VAD_SETTINGS.prefixMs = Math.round(
+        clamp(
+          parseFloat(elements.vadPrefixSlider.value),
+          VAD_LIMITS.prefixMs.min,
+          VAD_LIMITS.prefixMs.max,
+        ),
+      );
       updateVadDisplay();
       sendVadUpdate();
     });
@@ -347,7 +377,7 @@ async function refreshMicrophones(requestPermission) {
     try {
       tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (error) {
-      showToast('Autorisation micro refus?e', 'error');
+      showToast("Autorisation micro refus?e", "error");
       return;
     }
   }
@@ -361,16 +391,16 @@ async function refreshMicrophones(requestPermission) {
 
 async function listMicrophones() {
   const devices = await navigator.mediaDevices.enumerateDevices();
-  const mics = devices.filter((device) => device.kind === 'audioinput');
+  const mics = devices.filter((device) => device.kind === "audioinput");
 
   if (!elements.micSelect) return;
 
-  elements.micSelect.innerHTML = '';
+  elements.micSelect.innerHTML = "";
 
   if (mics.length === 0) {
-    const option = document.createElement('option');
-    option.value = '';
-    option.textContent = 'Aucun micro';
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Aucun micro";
     elements.micSelect.appendChild(option);
     elements.micSelect.disabled = true;
     return;
@@ -379,7 +409,7 @@ async function listMicrophones() {
   elements.micSelect.disabled = false;
 
   mics.forEach((mic, index) => {
-    const option = document.createElement('option');
+    const option = document.createElement("option");
     option.value = mic.deviceId;
     option.textContent = mic.label || `Microphone ${index + 1}`;
     elements.micSelect.appendChild(option);
@@ -399,10 +429,12 @@ async function switchMicrophone(deviceId) {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
-    deviceId: { exact: deviceId }
+    deviceId: { exact: deviceId },
   };
 
-  const newStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+  const newStream = await navigator.mediaDevices.getUserMedia({
+    audio: audioConstraints,
+  });
   const newTrack = newStream.getAudioTracks()[0];
   const oldTrack = mediaStream?.getAudioTracks?.()[0];
 
@@ -432,7 +464,7 @@ function initMicControls() {
     return;
   }
 
-  elements.micSelect.addEventListener('change', async (event) => {
+  elements.micSelect.addEventListener("change", async (event) => {
     selectedMicId = event.target.value || null;
     if (isRunning) {
       await switchMicrophone(selectedMicId);
@@ -440,12 +472,12 @@ function initMicControls() {
   });
 
   if (elements.micRefresh) {
-    elements.micRefresh.addEventListener('click', async () => {
+    elements.micRefresh.addEventListener("click", async () => {
       await refreshMicrophones(true);
     });
   }
 
-  navigator.mediaDevices.addEventListener('devicechange', () => {
+  navigator.mediaDevices.addEventListener("devicechange", () => {
     refreshMicrophones(false);
   });
 
@@ -486,8 +518,8 @@ function incrementRequestCount() {
  * Met à jour l'affichage du compteur
  */
 function updateRequestDisplay() {
-  const reqPerMin = document.getElementById('reqPerMin');
-  const reqTotal = document.getElementById('reqTotal');
+  const reqPerMin = document.getElementById("reqPerMin");
+  const reqTotal = document.getElementById("reqTotal");
   if (reqPerMin) reqPerMin.textContent = requestsPerMinute;
   if (reqTotal) reqTotal.textContent = requestCount;
 }
@@ -504,11 +536,11 @@ async function startRealtime() {
 
   try {
     isRunning = true;
-    updateStatus('connecting', 'Connexion en cours...');
+    updateStatus("connecting", "Connexion en cours...");
     elements.startBtn.disabled = true;
 
     // 1. Initialiser WebRTC
-    showToast('Connexion WebRTC...', 'info');
+    showToast("Connexion WebRTC...", "info");
     await setupWebRTC();
     await listMicrophones();
 
@@ -522,15 +554,14 @@ async function startRealtime() {
     scheduleSessionRotation();
 
     // Success
-    updateStatus('connected', 'Connecté - Traduction active');
+    updateStatus("connected", "Connecté - Traduction active");
     elements.stopBtn.disabled = false;
-    elements.audioLevelContainer.style.display = 'block';
-    showToast('Traduction démarrée !', 'success');
-
+    elements.audioLevelContainer.style.display = "block";
+    showToast("Traduction démarrée !", "success");
   } catch (error) {
-    console.error('Erreur démarrage:', error);
-    showToast(`Erreur: ${error.message}`, 'error');
-    updateStatus('error', 'Erreur de connexion');
+    console.error("Erreur démarrage:", error);
+    showToast(`Erreur: ${error.message}`, "error");
+    updateStatus("error", "Erreur de connexion");
     cleanup();
     elements.startBtn.disabled = false;
     isRunning = false;
@@ -543,11 +574,11 @@ async function startRealtime() {
 function stopRealtime() {
   cleanup();
   isRunning = false;
-  updateStatus('disconnected', 'Arrêté');
+  updateStatus("disconnected", "Arrêté");
   elements.startBtn.disabled = false;
   elements.stopBtn.disabled = true;
-  elements.audioLevelContainer.style.display = 'none';
-  showToast('Traduction arrêtée', 'warning');
+  elements.audioLevelContainer.style.display = "none";
+  showToast("Traduction arrêtée", "warning");
 }
 
 // ==========================================
@@ -573,7 +604,7 @@ async function setupWebRTC() {
   const audioConstraints = {
     echoCancellation: true,
     noiseSuppression: true,
-    autoGainControl: true
+    autoGainControl: true,
   };
 
   if (selectedMicId) {
@@ -581,28 +612,30 @@ async function setupWebRTC() {
   }
 
   mediaStream = await navigator.mediaDevices.getUserMedia({
-    audio: audioConstraints
+    audio: audioConstraints,
   });
 
   // Ajouter la piste audio locale
-  audioSender = peerConnection.addTrack(mediaStream.getTracks()[0], mediaStream);
-
+  audioSender = peerConnection.addTrack(
+    mediaStream.getTracks()[0],
+    mediaStream,
+  );
 
   // Créer le data channel pour les événements
-  dataChannel = peerConnection.createDataChannel('oai-events');
+  dataChannel = peerConnection.createDataChannel("oai-events");
 
   dataChannel.onopen = () => {
-    console.log('✅ DataChannel ouvert');
+    console.log("✅ DataChannel ouvert");
   };
 
   dataChannel.onmessage = handleRealtimeEvent;
 
   dataChannel.onerror = (error) => {
-    console.error('❌ DataChannel erreur:', error);
+    console.error("❌ DataChannel erreur:", error);
   };
 
   dataChannel.onclose = () => {
-    console.log('📴 DataChannel fermé');
+    console.log("📴 DataChannel fermé");
     if (isRunning) {
       scheduleReconnect();
     }
@@ -610,9 +643,11 @@ async function setupWebRTC() {
 
   // Gérer la déconnexion
   peerConnection.onconnectionstatechange = () => {
-    console.log('📡 État connexion:', peerConnection.connectionState);
-    if (peerConnection.connectionState === 'failed' ||
-        peerConnection.connectionState === 'disconnected') {
+    console.log("📡 État connexion:", peerConnection.connectionState);
+    if (
+      peerConnection.connectionState === "failed" ||
+      peerConnection.connectionState === "disconnected"
+    ) {
       if (isRunning) {
         scheduleReconnect();
       }
@@ -624,12 +659,12 @@ async function setupWebRTC() {
   await peerConnection.setLocalDescription(offer);
 
   // Envoyer l'offre au serveur et recevoir la réponse
-  const response = await fetch('/session', {
-    method: 'POST',
+  const response = await fetch("/session", {
+    method: "POST",
     body: offer.sdp,
     headers: {
-      'Content-Type': 'application/sdp'
-    }
+      "Content-Type": "application/sdp",
+    },
   });
 
   if (!response.ok) {
@@ -641,11 +676,11 @@ async function setupWebRTC() {
 
   // Définir la description distante
   await peerConnection.setRemoteDescription({
-    type: 'answer',
-    sdp: answerSdp
+    type: "answer",
+    sdp: answerSdp,
   });
 
-  console.log('✅ Connexion WebRTC établie');
+  console.log("✅ Connexion WebRTC établie");
 }
 
 /**
@@ -658,13 +693,14 @@ const clientResponseIds = new Set();
 let commitCounter = 0;
 let lastRequestCommitCounter = 0;
 let lastCommittedItemId = null;
+const CONTEXT_ITEMS = 20; // Nombre de traductions précédentes à injecter comme contexte texte
 const requestCommitMap = new Map();
 const responseCommitMap = new Map();
 const commitConsumed = new Map();
 
 function requestTextResponse() {
-  if (!dataChannel || dataChannel.readyState !== 'open') {
-    console.warn('DataChannel non disponible');
+  if (!dataChannel || dataChannel.readyState !== "open") {
+    console.warn("DataChannel non disponible");
     return;
   }
 
@@ -674,22 +710,50 @@ function requestTextResponse() {
   lastRequestCommitCounter = commitCounter;
   requestCommitMap.set(requestId, lastRequestCommitCounter);
 
-  const event = {
-    type: 'response.create',
-    response: {
-      conversation: 'none',
-      output_modalities: ['text'],
-      metadata: {
-        source: 'client',
-        request_id: requestId,
-        commit_seq: String(lastRequestCommitCounter),
-        commit_item_id: lastCommittedItemId || ''
-      }
+  const response = {
+    conversation: "none",
+    output_modalities: ["text"],
+    metadata: {
+      source: "client",
+      request_id: requestId,
+      commit_seq: String(lastRequestCommitCounter),
+      commit_item_id: lastCommittedItemId || "",
+    },
+  };
+
+  // Construire l'input : contexte texte des dernières traductions + audio courant uniquement
+  // (envoyer plusieurs item_reference audio ferait retraduire les segments précédents → doublons)
+  if (lastCommittedItemId) {
+    const inputItems = [];
+
+    const recentTranslations = subtitles.slice(-CONTEXT_ITEMS);
+    if (recentTranslations.length > 0) {
+      const contextText = recentTranslations
+        .map((s) => `- ${s.text}`)
+        .join("\n");
+      inputItems.push({
+        type: "message",
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: `Contexte (déjà traduit, ne pas répéter) :\n${contextText}`,
+          },
+        ],
+      });
     }
+
+    inputItems.push({ type: "item_reference", id: lastCommittedItemId });
+    response.input = inputItems;
+  }
+
+  const event = {
+    type: "response.create",
+    response,
   };
 
   dataChannel.send(JSON.stringify(event));
-  console.log('Request sent');
+  console.log("Request sent");
 }
 
 function maybeRequestResponse() {
@@ -741,8 +805,8 @@ function updateAudioLevel() {
   elements.audioLevel.style.width = `${level}%`;
 
   // Mettre à jour le panneau VAD
-  const levelBar = document.getElementById('vadLevelBar');
-  const levelValue = document.getElementById('audioLevelValue');
+  const levelBar = document.getElementById("vadLevelBar");
+  const levelValue = document.getElementById("audioLevelValue");
   if (levelBar) levelBar.style.width = `${level}%`;
   if (levelValue) levelValue.textContent = Math.round(level);
 
@@ -763,16 +827,16 @@ let vadDetectionCount = 0;
 let awaitingResponse = false;
 let responseHasOutputText = false;
 let responseHasContentPart = false;
-let lastTranslationText = '';
+let lastTranslationText = "";
 let lastTranslationAt = 0;
-let pendingFinalText = '';
-let deferredFinalText = '';
+let pendingFinalText = "";
+let deferredFinalText = "";
 
 function resetResponseBuffers() {
-  currentLine = '';
+  currentLine = "";
   responseHasOutputText = false;
   responseHasContentPart = false;
-  pendingFinalText = '';
+  pendingFinalText = "";
 }
 
 function maybeFlushDeferredFinal() {
@@ -781,52 +845,61 @@ function maybeFlushDeferredFinal() {
   if (!deferredFinalText) return;
 
   finalizeTranslation(deferredFinalText);
-  deferredFinalText = '';
+  deferredFinalText = "";
 }
 
-
 function finalizeTranslation(text) {
-  const trimmed = (text || '').trim();
+  const trimmed = (text || "").trim();
   if (!trimmed) return;
 
+  // Supprimer les "..." de fin produits par le modèle sur phrase incomplète
+  const cleaned = trimmed.replace(/\.{2,}\s*$/, "").trimEnd();
+  if (!cleaned) return;
+
+  // Ignorer les sorties trop courtes pour être une vraie traduction (bruit, silence détecté)
+  const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 2 && cleaned.length < 8) return;
+
   const now = Date.now();
-  if (trimmed === lastTranslationText && (now - lastTranslationAt) < 8000) {
+  if (cleaned === lastTranslationText && now - lastTranslationAt < 8000) {
     return;
   }
 
-  const normalizeTranslation = (value) => value
-    .toLowerCase()
-    .replace(/[\t\n\r]+/g, ' ')
-    .replace(/[.,!?;:'"()[\]{}-]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const normalizeTranslation = (value) =>
+    value
+      .toLowerCase()
+      .replace(/[\t\n\r]+/g, " ")
+      .replace(/[.,!?;:'"()[\]{}-]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
   const lastSubtitle = subtitles[subtitles.length - 1];
   if (lastSubtitle) {
-    const recent = (now - lastSubtitle.timestamp) < 6000;
-    const nextNorm = normalizeTranslation(trimmed);
+    const recent = now - lastSubtitle.timestamp < 6000;
+    const nextNorm = normalizeTranslation(cleaned);
     const lastNorm = normalizeTranslation(lastSubtitle.text);
-    const sameOrExt = nextNorm === lastNorm ||
+    const sameOrExt =
+      nextNorm === lastNorm ||
       nextNorm.startsWith(lastNorm) ||
       lastNorm.startsWith(nextNorm);
 
     if (recent && sameOrExt) {
-      if (trimmed.length > lastSubtitle.text.length) {
-        lastSubtitle.text = trimmed;
+      if (cleaned.length > lastSubtitle.text.length) {
+        lastSubtitle.text = cleaned;
         updateHistory();
         renderSubtitles();
       }
-      lastTranslationText = trimmed;
+      lastTranslationText = cleaned;
       lastTranslationAt = now;
       return;
     }
   }
 
-  lastTranslationText = trimmed;
+  lastTranslationText = cleaned;
   lastTranslationAt = now;
-  console.log('TRADUCTION:', trimmed);
+  console.log("TRADUCTION:", cleaned);
 
-  addSubtitle(trimmed);
+  addSubtitle(cleaned);
   renderSubtitles();
 }
 
@@ -842,9 +915,9 @@ function stopPrompteurScroll() {
 
 function ensurePrompteurList(container) {
   if (prompteurListEl) return;
-  container.innerHTML = '';
-  prompteurListEl = document.createElement('div');
-  prompteurListEl.className = 'prompteur-list';
+  container.innerHTML = "";
+  prompteurListEl = document.createElement("div");
+  prompteurListEl.className = "prompteur-list";
   container.appendChild(prompteurListEl);
   prompteurScrollY = container.clientHeight;
 }
@@ -862,7 +935,7 @@ function startPrompteurAutoScroll() {
       prompteurScrollY -= prompteurScrollSpeed;
       const contentBottom = prompteurScrollY + blockHeight;
       if (contentBottom < 0) {
-        prompteurListEl.innerHTML = '';
+        prompteurListEl.innerHTML = "";
         prompteurSeenKeys.clear();
         prompteurScrollY = container.clientHeight;
       }
@@ -885,8 +958,8 @@ function renderPrompteurList(container, items) {
 
   items.forEach((sub) => {
     if (prompteurSeenKeys.has(sub.timestamp)) return;
-    const div = document.createElement('div');
-    div.className = 'subtitle final';
+    const div = document.createElement("div");
+    div.className = "subtitle final";
     div.textContent = sub.text;
     prompteurListEl.appendChild(div);
     prompteurSeenKeys.add(sub.timestamp);
@@ -903,27 +976,28 @@ function handleRealtimeEvent(event) {
     const msg = JSON.parse(event.data);
 
     // Log tous les événements pour debug
-    console.log('📨', msg.type, msg);
+    console.log("📨", msg.type, msg);
 
     // Session créée
-    if (msg.type === 'session.created') {
-      console.log('✅ Session Realtime créée');
-      showToast('Session connectée', 'success');
+    if (msg.type === "session.created") {
+      console.log("✅ Session Realtime créée");
+      showToast("Session connectée", "success");
       sessionReady = true;
       maybeEnableVadUpdates(msg.session);
       sendVadUpdate();
     }
 
     // Session mise à jour
-    if (msg.type === 'session.updated') {
-      console.log('🔄 Session configurée');
+    if (msg.type === "session.updated") {
+      console.log("🔄 Session configurée");
       sessionReady = true;
       maybeEnableVadUpdates(msg.session);
     }
 
-    if (msg.type === 'response.created') {
+    if (msg.type === "response.created") {
       const responseMeta = msg.response?.metadata;
-      const isClientResponse = responseMeta?.source === 'client' &&
+      const isClientResponse =
+        responseMeta?.source === "client" &&
         responseMeta?.request_id === lastClientRequestId;
 
       if (isClientResponse) {
@@ -931,7 +1005,8 @@ function handleRealtimeEvent(event) {
         if (msg.response?.id) {
           clientResponseIds.add(msg.response.id);
           const commitId = responseMeta?.request_id
-            ? (requestCommitMap.get(responseMeta.request_id) ?? lastRequestCommitCounter)
+            ? (requestCommitMap.get(responseMeta.request_id) ??
+              lastRequestCommitCounter)
             : lastRequestCommitCounter;
           responseCommitMap.set(msg.response.id, commitId);
         }
@@ -949,36 +1024,36 @@ function handleRealtimeEvent(event) {
 
     // ========== DÉTECTION VOCALE (Server VAD) ==========
 
-    if (msg.type === 'input_audio_buffer.speech_started') {
-      console.log('🎙️ Parole détectée...');
+    if (msg.type === "input_audio_buffer.speech_started") {
+      console.log("🎙️ Parole détectée...");
       isSpeaking = true;
       vadDetectionCount++;
 
-      const indicator = document.getElementById('vadIndicator');
+      const indicator = document.getElementById("vadIndicator");
       if (indicator) {
-        indicator.style.background = '#2ecc71';
-        indicator.style.boxShadow = '0 0 10px 3px rgba(46, 204, 113, 0.5)';
+        indicator.style.background = "#2ecc71";
+        indicator.style.boxShadow = "0 0 10px 3px rgba(46, 204, 113, 0.5)";
       }
 
-      const detectionsEl = document.getElementById('vadDetections');
+      const detectionsEl = document.getElementById("vadDetections");
       if (detectionsEl) detectionsEl.textContent = vadDetectionCount;
     }
 
-    if (msg.type === 'input_audio_buffer.speech_stopped') {
-      console.log('🎙️ Fin de parole');
+    if (msg.type === "input_audio_buffer.speech_stopped") {
+      console.log("🎙️ Fin de parole");
       isSpeaking = false;
 
-      const indicator = document.getElementById('vadIndicator');
+      const indicator = document.getElementById("vadIndicator");
       if (indicator) {
-        indicator.style.background = '#555';
-        indicator.style.boxShadow = 'none';
+        indicator.style.background = "#555";
+        indicator.style.boxShadow = "none";
       }
 
       maybeFlushDeferredFinal();
     }
 
-    if (msg.type === 'input_audio_buffer.committed') {
-      console.log('🎙️ Audio envoyé pour traitement...');
+    if (msg.type === "input_audio_buffer.committed") {
+      console.log("🎙️ Audio envoyé pour traitement...");
       lastCommittedItemId = msg.item_id || null;
       commitCounter += 1;
       commitConsumed.set(commitCounter, false);
@@ -994,65 +1069,65 @@ function handleRealtimeEvent(event) {
 
     // ========== TRANSCRIPTION DE L'AUDIO D'ENTRÉE ==========
 
-    if (msg.type === 'conversation.item.input_audio_transcription.completed') {
-      console.log('🎤 Source détectée:', msg.transcript?.substring(0, 100));
+    if (msg.type === "conversation.item.input_audio_transcription.completed") {
+      console.log("🎤 Source détectée:", msg.transcript?.substring(0, 100));
     }
 
     // ========== TRADUCTION (RÉPONSE DU MODÈLE) ==========
 
     // Response text delta - accumulate
-    if (msg.type === 'response.text.delta') {
+    if (msg.type === "response.text.delta") {
       if (!responseHasOutputText && !responseHasContentPart) {
-        currentLine += msg.delta || '';
+        currentLine += msg.delta || "";
       }
     }
 
     // Response text (output) delta
-    if (msg.type === 'response.output_text.delta') {
-      if (!responseHasOutputText) currentLine = ''; // discard any text.delta accumulation
+    if (msg.type === "response.output_text.delta") {
+      if (!responseHasOutputText) currentLine = ""; // discard any text.delta accumulation
       responseHasOutputText = true;
-      currentLine += msg.delta || '';
+      currentLine += msg.delta || "";
     }
 
     // Response text (output) done - display
-    if (msg.type === 'response.output_text.done') {
+    if (msg.type === "response.output_text.done") {
       responseHasOutputText = true;
       pendingFinalText = msg.text || currentLine;
     }
 
     // Audio transcript delta
-    if (msg.type === 'response.audio_transcript.delta') {
+    if (msg.type === "response.audio_transcript.delta") {
       if (!responseHasOutputText && !responseHasContentPart) {
-        currentLine += msg.delta || '';
+        currentLine += msg.delta || "";
       }
     }
 
-    if (msg.type === 'response.audio_transcript.done') {
-      if (!responseHasOutputText && !responseHasContentPart) {
-        pendingFinalText = msg.transcript || currentLine;
-      }
-    }
-
-    if (msg.type === 'response.output_audio_transcript.delta') {
-      if (!responseHasOutputText && !responseHasContentPart) {
-        currentLine += msg.delta || '';
-      }
-    }
-
-    if (msg.type === 'response.output_audio_transcript.done') {
+    if (msg.type === "response.audio_transcript.done") {
       if (!responseHasOutputText && !responseHasContentPart) {
         pendingFinalText = msg.transcript || currentLine;
       }
     }
 
-    if (msg.type === 'response.content_part.delta') {
+    if (msg.type === "response.output_audio_transcript.delta") {
+      if (!responseHasOutputText && !responseHasContentPart) {
+        currentLine += msg.delta || "";
+      }
+    }
+
+    if (msg.type === "response.output_audio_transcript.done") {
+      if (!responseHasOutputText && !responseHasContentPart) {
+        pendingFinalText = msg.transcript || currentLine;
+      }
+    }
+
+    if (msg.type === "response.content_part.delta") {
       responseHasContentPart = true;
       if (msg.delta?.text && !responseHasOutputText) {
         currentLine += msg.delta.text;
       }
     }
 
-    if (msg.type === 'response.content_part.done') {
+    if (msg.type === "response.content_part.done") {
       responseHasContentPart = true;
       if (!responseHasOutputText) {
         pendingFinalText = msg.part?.text || currentLine;
@@ -1060,17 +1135,18 @@ function handleRealtimeEvent(event) {
     }
 
     // Réponse terminée
-    if (msg.type === 'response.done') {
+    if (msg.type === "response.done") {
       awaitingResponse = false;
-      const wasCancelled = msg.response?.status === 'cancelled' ||
-        msg.response?.status_details?.type === 'cancelled';
+      const wasCancelled =
+        msg.response?.status === "cancelled" ||
+        msg.response?.status_details?.type === "cancelled";
       const finalText = pendingFinalText || currentLine;
-      const trimmedFinal = (finalText || '').trim();
+      const trimmedFinal = (finalText || "").trim();
       const commitId = responseId ? responseCommitMap.get(responseId) : null;
       const alreadyConsumed = commitId ? commitConsumed.get(commitId) : false;
       if (wasCancelled && !finalText.trim()) {
         resetResponseBuffers();
-        console.log('ðŸ“¦ RÃ©ponse annulÃ©e (vide)');
+        console.log("ðŸ“¦ RÃ©ponse annulÃ©e (vide)");
         if (responseId) {
           clientResponseIds.delete(responseId);
           responseCommitMap.delete(responseId);
@@ -1093,7 +1169,7 @@ function handleRealtimeEvent(event) {
       if (isSpeaking) {
         deferredFinalText = finalText;
       } else {
-        deferredFinalText = '';
+        deferredFinalText = "";
         finalizeTranslation(finalText);
       }
       resetResponseBuffers();
@@ -1101,46 +1177,55 @@ function handleRealtimeEvent(event) {
         clientResponseIds.delete(responseId);
         responseCommitMap.delete(responseId);
       }
-      console.log('📦 Réponse complète');
+      console.log("📦 Réponse complète");
       maybeFlushDeferredFinal();
     }
 
     // Gestion des erreurs
-    if (msg.type === 'error') {
-      console.error('❌ Erreur Realtime:', msg.error);
+    if (msg.type === "error") {
+      console.error("❌ Erreur Realtime:", msg.error);
       const errorMsg = msg.error?.message || JSON.stringify(msg.error);
-      if (!vadUpdateSupported &&
-          (msg.error?.param === 'session.turn_detection' || msg.error?.param === 'session')) {
+      if (
+        !vadUpdateSupported &&
+        (msg.error?.param === "session.turn_detection" ||
+          msg.error?.param === "session")
+      ) {
         return;
       }
-      if (msg.error?.code === 'unknown_parameter' ||
-          msg.error?.code === 'missing_required_parameter') {
-        if (msg.error?.param === 'session.turn_detection' || msg.error?.param === 'session') {
+      if (
+        msg.error?.code === "unknown_parameter" ||
+        msg.error?.code === "missing_required_parameter"
+      ) {
+        if (
+          msg.error?.param === "session.turn_detection" ||
+          msg.error?.param === "session"
+        ) {
           setVadUpdateSupported(false);
-          showToast('VAD update unsupported', 'warning');
+          showToast("VAD update unsupported", "warning");
           return;
         }
       }
-      if (msg.error?.code === 'conversation_already_has_active_response') {
+      if (msg.error?.code === "conversation_already_has_active_response") {
         awaitingResponse = true;
         return;
       }
       awaitingResponse = false;
 
       // Détecter le rate limit
-      if (errorMsg.toLowerCase().includes('rate limit') ||
-          errorMsg.toLowerCase().includes('rate_limit') ||
-          errorMsg.toLowerCase().includes('too many requests') ||
-          msg.error?.code === 'rate_limit_exceeded') {
+      if (
+        errorMsg.toLowerCase().includes("rate limit") ||
+        errorMsg.toLowerCase().includes("rate_limit") ||
+        errorMsg.toLowerCase().includes("too many requests") ||
+        msg.error?.code === "rate_limit_exceeded"
+      ) {
         showRateLimitAlert();
       } else {
-        showToast(`Erreur: ${errorMsg}`, 'error');
+        showToast(`Erreur: ${errorMsg}`, "error");
       }
     }
-
   } catch (error) {
-    console.error('❌ Erreur parsing event:', error);
-    console.error('Raw data:', event.data);
+    console.error("❌ Erreur parsing event:", error);
+    console.error("Raw data:", event.data);
   }
 }
 
@@ -1154,7 +1239,7 @@ function handleRealtimeEvent(event) {
 function addSubtitle(text) {
   const subtitle = {
     text,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
 
   subtitles.push(subtitle);
@@ -1187,21 +1272,21 @@ function renderSubtitles() {
     return;
   }
 
-  container.innerHTML = '';
+  container.innerHTML = "";
 
   if (subtitles.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
     empty.textContent = isRunning
-      ? 'En attente de parole...'
+      ? "En attente de parole..."
       : 'Cliquez sur "Démarrer" pour commencer';
     container.appendChild(empty);
     return;
   }
 
-  recentSubtitles.forEach((sub, index) => {
-    const div = document.createElement('div');
-    div.className = 'subtitle final';
+  recentSubtitles.forEach((sub) => {
+    const div = document.createElement("div");
+    div.className = "subtitle final";
 
     div.textContent = sub.text;
     container.appendChild(div);
@@ -1215,18 +1300,18 @@ function renderSubtitles() {
  */
 function updateHistory() {
   const container = elements.historyContent;
-  container.innerHTML = '';
+  container.innerHTML = "";
 
-  subtitles.forEach(sub => {
-    const item = document.createElement('div');
-    item.className = 'history-item';
+  subtitles.forEach((sub) => {
+    const item = document.createElement("div");
+    item.className = "history-item";
 
-    const time = document.createElement('span');
-    time.className = 'history-time';
+    const time = document.createElement("span");
+    time.className = "history-time";
     time.textContent = formatTime(sub.timestamp);
 
-    const text = document.createElement('span');
-    text.className = 'history-text';
+    const text = document.createElement("span");
+    text.className = "history-text";
     text.textContent = sub.text;
 
     item.appendChild(time);
@@ -1242,24 +1327,26 @@ function updateHistory() {
  */
 function exportHistory() {
   if (subtitles.length === 0) {
-    showToast('Aucun historique à exporter', 'warning');
+    showToast("Aucun historique à exporter", "warning");
     return;
   }
 
-  const content = subtitles.map(sub => {
-    return `[${formatTime(sub.timestamp)}] ${sub.text}`;
-  }).join('\n');
+  const content = subtitles
+    .map((sub) => {
+      return `[${formatTime(sub.timestamp)}] ${sub.text}`;
+    })
+    .join("\n");
 
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `traduction-${formatDate(Date.now())}.txt`;
   a.click();
 
   URL.revokeObjectURL(url);
-  showToast('Historique exporté !', 'success');
+  showToast("Historique exporté !", "success");
 }
 
 // ==========================================
@@ -1270,9 +1357,9 @@ function exportHistory() {
  * Programme une reconnexion automatique
  */
 function scheduleReconnect() {
-  console.warn('⚠️ Reconnexion programmée...');
-  showToast('Connexion perdue, reconnexion...', 'warning');
-  updateStatus('connecting', 'Reconnexion...');
+  console.warn("⚠️ Reconnexion programmée...");
+  showToast("Connexion perdue, reconnexion...", "warning");
+  updateStatus("connecting", "Reconnexion...");
 
   cleanup(false);
 
@@ -1281,12 +1368,11 @@ function scheduleReconnect() {
       await setupWebRTC();
       setupAudioAnalyser();
       scheduleSessionRotation();
-      updateStatus('connected', 'Reconnecté !');
-      showToast('Reconnexion réussie !', 'success');
-
+      updateStatus("connected", "Reconnecté !");
+      showToast("Reconnexion réussie !", "success");
     } catch (error) {
-      console.error('Erreur reconnexion:', error);
-      showToast('Échec reconnexion, nouvelle tentative...', 'error');
+      console.error("Erreur reconnexion:", error);
+      showToast("Échec reconnexion, nouvelle tentative...", "error");
       scheduleReconnect();
     }
   }, CONFIG.RECONNECT_DELAY_MS);
@@ -1299,12 +1385,11 @@ function scheduleSessionRotation() {
   clearTimeout(sessionRotationTimer);
 
   sessionRotationTimer = setTimeout(() => {
-    console.log('🔄 Rotation de session...');
-    showToast('Renouvellement de session...', 'info');
+    console.log("🔄 Rotation de session...");
+    showToast("Renouvellement de session...", "info");
 
     cleanup(false);
     startRealtime();
-
   }, CONFIG.SESSION_ROTATION_MS);
 
   updateSessionInfo();
@@ -1315,7 +1400,7 @@ function scheduleSessionRotation() {
  */
 function updateSessionInfo() {
   if (!isRunning) {
-    elements.sessionInfo.textContent = '';
+    elements.sessionInfo.textContent = "";
     return;
   }
 
@@ -1352,7 +1437,7 @@ function cleanup(resetRunning = true) {
 
   // Media stream
   if (resetRunning && mediaStream) {
-    mediaStream.getTracks().forEach(track => track.stop());
+    mediaStream.getTracks().forEach((track) => track.stop());
     mediaStream = null;
   }
 
@@ -1364,16 +1449,16 @@ function cleanup(resetRunning = true) {
   }
 
   // Reset VAD indicator
-  const indicator = document.getElementById('vadIndicator');
+  const indicator = document.getElementById("vadIndicator");
   if (indicator) {
-    indicator.style.background = '#555';
-    indicator.style.boxShadow = 'none';
+    indicator.style.background = "#555";
+    indicator.style.boxShadow = "none";
   }
 
   isSpeaking = false;
-  currentLine = '';
+  currentLine = "";
   awaitingResponse = false;
-  deferredFinalText = '';
+  deferredFinalText = "";
   sessionReady = false;
   vadUpdateSupported = false;
   vadSupportChecked = false;
@@ -1381,8 +1466,8 @@ function cleanup(resetRunning = true) {
   if (resetRunning) {
     isRunning = false;
     vadDetectionCount = 0;
-    const detectionsEl = document.getElementById('vadDetections');
-    if (detectionsEl) detectionsEl.textContent = '0';
+    const detectionsEl = document.getElementById("vadDetections");
+    if (detectionsEl) detectionsEl.textContent = "0";
   }
 }
 
@@ -1396,17 +1481,17 @@ function cleanup(resetRunning = true) {
 function updateStatus(status, text) {
   elements.statusText.textContent = text;
 
-  elements.statusDot.classList.remove('connected', 'connecting', 'error');
+  elements.statusDot.classList.remove("connected", "connecting", "error");
 
   switch (status) {
-    case 'connected':
-      elements.statusDot.classList.add('connected');
+    case "connected":
+      elements.statusDot.classList.add("connected");
       break;
-    case 'connecting':
-      elements.statusDot.classList.add('connecting');
+    case "connecting":
+      elements.statusDot.classList.add("connecting");
       break;
-    case 'error':
-      elements.statusDot.classList.add('error');
+    case "error":
+      elements.statusDot.classList.add("error");
       break;
   }
 }
@@ -1417,8 +1502,8 @@ function updateStatus(status, text) {
 function showRateLimitAlert() {
   stopRealtime();
 
-  const overlay = document.createElement('div');
-  overlay.id = 'rateLimitOverlay';
+  const overlay = document.createElement("div");
+  overlay.id = "rateLimitOverlay";
   overlay.style.cssText = `
     position: fixed;
     top: 0;
@@ -1432,7 +1517,7 @@ function showRateLimitAlert() {
     z-index: 9999;
   `;
 
-  const alertBox = document.createElement('div');
+  const alertBox = document.createElement("div");
   alertBox.style.cssText = `
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border: 2px solid #e74c3c;
@@ -1470,32 +1555,34 @@ function showRateLimitAlert() {
   overlay.appendChild(alertBox);
   document.body.appendChild(overlay);
 
-  document.getElementById('closeRateLimitAlert').addEventListener('click', () => {
-    overlay.remove();
-  });
+  document
+    .getElementById("closeRateLimitAlert")
+    .addEventListener("click", () => {
+      overlay.remove();
+    });
 
   const escHandler = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       overlay.remove();
-      document.removeEventListener('keydown', escHandler);
+      document.removeEventListener("keydown", escHandler);
     }
   };
-  document.addEventListener('keydown', escHandler);
+  document.addEventListener("keydown", escHandler);
 }
 
 /**
  * Affiche une notification toast
  */
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
+function showToast(message, type = "info") {
+  const toast = document.createElement("div");
   toast.className = `toast ${type}`;
   toast.textContent = message;
 
   elements.toastContainer.appendChild(toast);
 
   setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(100px)';
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(100px)";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
@@ -1504,10 +1591,10 @@ function showToast(message, type = 'info') {
  * Formate un timestamp en heure
  */
 function formatTime(timestamp) {
-  return new Date(timestamp).toLocaleTimeString('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+  return new Date(timestamp).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -1516,5 +1603,5 @@ function formatTime(timestamp) {
  */
 function formatDate(timestamp) {
   const d = new Date(timestamp);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}_${String(d.getHours()).padStart(2, "0")}-${String(d.getMinutes()).padStart(2, "0")}`;
 }
