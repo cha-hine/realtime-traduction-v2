@@ -57,7 +57,7 @@ OPENAI_API_KEY=sk-votre-cle-api
 npm start
 ```
 
-4. Ouvrez http://localhost:3000 dans votre navigateur
+4. Ouvrez http://localhost:3000/prompteur.html dans votre navigateur
 
 ## Utilisation
 
@@ -74,6 +74,7 @@ realtime-traduction-v2/
 │   └── index.js          # Serveur Express + endpoint token
 ├── public/
 │   ├── index.html        # Page principale
+├    ── prompteur.html    # Page principale
 │   ├── styles.css        # Styles
 │   └── app.js            # Client WebRTC
 ├── .env.example          # Exemple de configuration
