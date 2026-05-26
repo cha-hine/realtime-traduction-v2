@@ -18,7 +18,7 @@ Microphone
     ↓
 WebRTC (RTCPeerConnection)
     ↓
-OpenAI Realtime API (gpt-4o-mini-transcribe)
+OpenAI Realtime API (gpt-realtime)
     ↓
 Événements texte (delta + completed)
     ↓
