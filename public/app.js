@@ -572,6 +572,7 @@ async function startRealtime() {
  * Arrête la session de traduction
  */
 function stopRealtime() {
+  exportHistory();
   cleanup();
   isRunning = false;
   updateStatus("disconnected", "Arrêté");
@@ -1243,11 +1244,6 @@ function addSubtitle(text) {
   };
 
   subtitles.push(subtitle);
-
-  // Limiter l'historique
-  if (subtitles.length > CONFIG.MAX_HISTORY_ITEMS) {
-    subtitles = subtitles.slice(-CONFIG.MAX_HISTORY_ITEMS);
-  }
 
   // Mettre à jour l'historique
   updateHistory();
