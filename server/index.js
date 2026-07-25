@@ -112,9 +112,28 @@ Output the translated text directly, with no prefix at the start and at the end.
 const getSessionConfig = () =>
   JSON.stringify({
     type: "realtime",
-    model: "gpt-realtime-2",
+    model: "gpt-realtime-2.1",
     instructions: TRANSLATION_INSTRUCTIONS,
     output_modalities: ["text"],
+    reasoning: {
+      effort: "none",
+    },
+
+    tracing: {
+      workflow_name: "realtime-traduction-v2",
+      group_id: `session-${Date.now()}`,
+      metadata: {
+        app: "realtime-traduction-v2",
+        mode: "traduction-live",
+        model: "gpt-realtime-2.1",
+        output_modalities: "text",
+        reasoning_effort: "none",
+        truncation_type: "retention_ratio",
+        retention_ratio: "0.2",
+        version: "debug-cost-2026-06-27",
+      },
+    },
+
     truncation: {
       type: "retention_ratio",
       retention_ratio: 0.2,

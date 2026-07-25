@@ -16,8 +16,8 @@ const CONFIG = {
 };
 
 const VAD_SETTINGS = {
-  eagerness: "low",
-  prefixMs: 500,
+  eagerness: "high",
+  prefixMs: 200,
 };
 
 const VAD_LIMITS = {
@@ -166,14 +166,23 @@ function initPrompteurControls() {
 
   document.addEventListener("keydown", (e) => {
     // Ignorer si focus sur un input/select/textarea
-    if (["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+    if (
+      ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)
+    )
+      return;
 
     let changed = false;
     if (e.key === "ArrowRight" || e.key === "PageDown") {
-      prompteurScrollSpeed = Math.min(speedMax, Math.round((prompteurScrollSpeed + speedStep) * 10) / 10);
+      prompteurScrollSpeed = Math.min(
+        speedMax,
+        Math.round((prompteurScrollSpeed + speedStep) * 10) / 10,
+      );
       changed = true;
     } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
-      prompteurScrollSpeed = Math.max(speedMin, Math.round((prompteurScrollSpeed - speedStep) * 10) / 10);
+      prompteurScrollSpeed = Math.max(
+        speedMin,
+        Math.round((prompteurScrollSpeed - speedStep) * 10) / 10,
+      );
       changed = true;
     }
 
