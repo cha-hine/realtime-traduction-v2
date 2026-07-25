@@ -132,7 +132,7 @@ function initThemeToggle() {
   };
 
   // Restaurer la préférence sauvegardée
-  applyTheme(localStorage.getItem("prompteur-dark") === "1");
+  applyTheme(localStorage.getItem("prompteur-dark") !== "0");
 
   btn.addEventListener("click", () => {
     const isDark = !document.body.classList.contains("dark");

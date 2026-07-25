@@ -25,7 +25,7 @@
 </head>
 
 <body class="prompteur">
-  <div class="prompteur-layout">
+  <div class="prompteur-layout layout-50">
     <section class="prompteur-left">
       <div class="prompteur-badge">Traduction en direct</div>
       <div id="subtitles" class="prompteur-subtitles"></div>
@@ -37,49 +37,42 @@
         <span class="prompteur-status" id="statusText">Pr?t ? d?marrer</span>
       </div>
 
-      <div class="status-bar">
-        <div class="status-indicator" id="statusIndicator">
+      <!-- Ligne 1 : Statut + Démarrer + Arrêter -->
+      <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
+        <div class="status-indicator" id="statusIndicator" style="flex-shrink:0;">
           <span class="status-dot"></span>
           <span class="status-text">Statut</span>
         </div>
-      </div>
-
-      <div class="controls">
-        <button id="startBtn" class="btn btn-primary">
+        <button id="startBtn" class="btn btn-primary btn-small"
+          style="flex:1; justify-content:center; white-space:nowrap;">
           <span class="btn-icon">🎤</span>
-          Démarrer la traduction
+          Démarrer
         </button>
-        <button id="stopBtn" class="btn btn-danger" disabled>
+        <button id="stopBtn" class="btn btn-danger btn-small" disabled
+          style="flex-shrink:0; justify-content:center; white-space:nowrap;">
           <span class="btn-icon">⏹</span>
           Arrêter
         </button>
       </div>
 
-      <div class="controls">
-        <button id="themeToggleBtn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+      <!-- Ligne 2 : Mode noir + 50/50 + Taille du texte -->
+      <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
+        <button id="themeToggleBtn" class="btn btn-secondary btn-small"
+          style="flex-shrink:0; justify-content:center; white-space:nowrap;">
           <span id="themeToggleIcon">🌙</span>
           <span id="themeToggleLabel">Mode noir</span>
         </button>
-      </div>
-
-      <div class="controls">
-        <button id="layoutToggleBtn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
-          <span id="layoutToggleLabel">⇔ 50 / 50</span>
+        <button id="layoutToggleBtn" class="btn btn-secondary btn-small"
+          style="flex-shrink:0; justify-content:center; white-space:nowrap;">
+          <span id="layoutToggleLabel">⇔ 50/50</span>
         </button>
-      </div>
-
-      <div class="vad-controls">
-        <div class="vad-header">
-          <span>Taille du texte</span>
-          <span class="vad-status" id="fontSizeValue">3.5 rem</span>
-        </div>
-        <div class="vad-row">
-          <div class="vad-actions" style="gap: 0.5rem; width: 100%; justify-content: center;">
-            <button id="fontDecrBtn" class="btn btn-secondary btn-small"
-              style="flex: 1; justify-content: center;">A−</button>
-            <button id="fontIncrBtn" class="btn btn-secondary btn-small"
-              style="flex: 1; justify-content: center;">A+</button>
-          </div>
+        <div style="display:flex; align-items:center; gap:0.3rem; flex:1; justify-content:flex-end; flex-wrap:nowrap;">
+          <span class="vad-label" style="white-space:nowrap; font-size:0.7rem;">Texte</span>
+          <span class="vad-status" id="fontSizeValue" style="white-space:nowrap; font-size:0.7rem;">2.50 rem</span>
+          <button id="fontDecrBtn" class="btn btn-secondary btn-small"
+            style="flex-shrink:0; justify-content:center; padding:0.2rem 0.5rem;">A−</button>
+          <button id="fontIncrBtn" class="btn btn-secondary btn-small"
+            style="flex-shrink:0; justify-content:center; padding:0.2rem 0.5rem;">A+</button>
         </div>
       </div>
 
@@ -182,14 +175,15 @@
         if (fontSize > min) { fontSize = Math.round((fontSize - step) * 100) / 100; applyFontSize(); }
       });
 
-      // Layout toggle 70/30 ↔ 50/50
-      let is5050 = false;
+      // Layout toggle 70/30 ↔ 50/50 (défaut : 50/50)
+      let is5050 = true;
       const layoutBtn = document.getElementById('layoutToggleBtn');
       const layoutLabel = document.getElementById('layoutToggleLabel');
+      layoutLabel.textContent = '⇔ 70/30';
       layoutBtn.addEventListener('click', function () {
         is5050 = !is5050;
         document.querySelector('.prompteur-layout').classList.toggle('layout-50', is5050);
-        layoutLabel.textContent = is5050 ? '⇔ 70 / 30' : '⇔ 50 / 50';
+        layoutLabel.textContent = is5050 ? '⇔ 70/30' : '⇔ 50/50';
       });
     })();
   </script>
