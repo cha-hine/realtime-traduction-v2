@@ -47,10 +47,19 @@
     <!-- VAD Controls -->
     <div class="vad-controls" id="vadControls">
       <div class="vad-header">
-        <span>Semantic VAD</span>
+        <span>Découpage de la parole</span>
         <span class="vad-status" id="vadStatus">Live</span>
       </div>
       <div class="vad-row">
+        <span class="vad-label">Segmentation</span>
+        <div class="vad-actions">
+          <select class="vad-select" id="vadMode" data-vad="mode">
+            <option value="semantic" selected>Sémantique (fin de phrase)</option>
+            <option value="server">Silence court (plus réactif)</option>
+          </select>
+        </div>
+      </div>
+      <div class="vad-row" id="vadEagernessRow">
         <span class="vad-label">Réactivité</span>
         <div class="vad-actions">
           <select class="vad-select" id="vadEagerness" data-vad="eagerness">
@@ -61,11 +70,18 @@
           </select>
         </div>
       </div>
+      <div class="vad-row" id="vadSilenceRow" style="display: none;">
+        <span class="vad-label">Silence (ms)</span>
+        <div class="vad-actions">
+          <input class="vad-slider" type="range" min="150" max="800" step="50" value="300" data-vad="silence" />
+          <span class="vad-value" id="vadSilenceValue">300</span>
+        </div>
+      </div>
       <div class="vad-row">
         <span class="vad-label">Prefixe (ms)</span>
         <div class="vad-actions">
-          <input class="vad-slider" type="range" min="0" max="1000" step="50" value="250" data-vad="prefix" />
-          <span class="vad-value" id="vadPrefixValue">250</span>
+          <input class="vad-slider" type="range" min="0" max="1000" step="50" value="200" data-vad="prefix" />
+          <span class="vad-value" id="vadPrefixValue">200</span>
         </div>
       </div>
     </div>

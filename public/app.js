@@ -16,12 +16,17 @@ const CONFIG = {
 };
 
 const VAD_SETTINGS = {
+  // "semantic" : OpenAI décide de la fin de phrase (segments longs, meilleure qualité)
+  // "server"   : découpage sur un silence court (traduction démarrée plus tôt)
+  mode: "semantic",
   eagerness: "high",
   prefixMs: 200,
+  silenceMs: 300,
 };
 
 const VAD_LIMITS = {
   prefixMs: { min: 0, max: 1000, step: 50 },
+  silenceMs: { min: 150, max: 800, step: 50 },
 };
 
 // ==========================================
@@ -57,7 +62,10 @@ let prompteurScrollSpeed = CONFIG.PROMPTEUR_SCROLL_PX_PER_FRAME;
 let prompteurScrollRaf = null;
 let prompteurScrollY = 0;
 let prompteurListEl = null;
-const prompteurSeenKeys = new Set();
+let prompteurPartialEl = null;
+// timestamp du sous-titre -> noeud DOM, pour pouvoir mettre à jour une ligne
+// déjà affichée (finalizeTranslation étend parfois le dernier sous-titre)
+const prompteurNodes = new Map();
 
 // DOM Elements
 const elements = {
@@ -82,6 +90,11 @@ const elements = {
   vadPrefixValue: document.getElementById("vadPrefixValue"),
   vadStatus: document.getElementById("vadStatus"),
   vadPrefixSlider: document.querySelector('[data-vad="prefix"]'),
+  vadMode: document.getElementById("vadMode"),
+  vadSilenceSlider: document.querySelector('[data-vad="silence"]'),
+  vadSilenceValue: document.getElementById("vadSilenceValue"),
+  vadSilenceRow: document.getElementById("vadSilenceRow"),
+  vadEagernessRow: document.getElementById("vadEagernessRow"),
 };
 
 // ==========================================
@@ -258,7 +271,7 @@ function createVadIndicator() {
         box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
       "></div>
     </div>
-    <div style="color: #888; font-size: 11px; text-align: center;">
+    <div id="vadModeLabel" style="color: #888; font-size: 11px; text-align: center;">
       Mode: Semantic VAD (OpenAI)
     </div>
     <!-- Indicateur de niveau audio -->
@@ -301,6 +314,9 @@ function clamp(value, min, max) {
 }
 
 function updateVadDisplay() {
+  if (elements.vadMode) {
+    elements.vadMode.value = VAD_SETTINGS.mode;
+  }
   if (elements.vadEagerness) {
     elements.vadEagerness.value = VAD_SETTINGS.eagerness;
   }
@@ -309,6 +325,30 @@ function updateVadDisplay() {
   }
   if (elements.vadPrefixValue) {
     elements.vadPrefixValue.textContent = String(VAD_SETTINGS.prefixMs);
+  }
+  if (elements.vadSilenceSlider) {
+    elements.vadSilenceSlider.value = String(VAD_SETTINGS.silenceMs);
+  }
+  if (elements.vadSilenceValue) {
+    elements.vadSilenceValue.textContent = String(VAD_SETTINGS.silenceMs);
+  }
+
+  // Chaque mode a son propre réglage
+  const isServerMode = VAD_SETTINGS.mode === "server";
+
+  // Panneau injecté dynamiquement : le récupérer à chaque fois
+  const modeLabel = document.getElementById("vadModeLabel");
+  if (modeLabel) {
+    modeLabel.textContent = isServerMode
+      ? `Mode: Server VAD (silence ${VAD_SETTINGS.silenceMs} ms)`
+      : "Mode: Semantic VAD (OpenAI)";
+  }
+
+  if (elements.vadEagernessRow) {
+    elements.vadEagernessRow.style.display = isServerMode ? "none" : "";
+  }
+  if (elements.vadSilenceRow) {
+    elements.vadSilenceRow.style.display = isServerMode ? "" : "none";
   }
 }
 
@@ -339,15 +379,24 @@ function sendVadUpdate() {
   if (!dataChannel || dataChannel.readyState !== "open") return;
   if (!sessionReady || !vadUpdateSupported) return;
 
+  const turnDetection =
+    VAD_SETTINGS.mode === "server"
+      ? {
+          type: "server_vad",
+          prefix_padding_ms: VAD_SETTINGS.prefixMs,
+          silence_duration_ms: VAD_SETTINGS.silenceMs,
+        }
+      : {
+          type: "semantic_vad",
+          eagerness: VAD_SETTINGS.eagerness,
+          prefix_padding_ms: VAD_SETTINGS.prefixMs,
+        };
+
   const event = {
     type: "session.update",
     session: {
       type: "realtime",
-      turn_detection: {
-        type: "semantic_vad",
-        eagerness: VAD_SETTINGS.eagerness,
-        prefix_padding_ms: VAD_SETTINGS.prefixMs,
-      },
+      turn_detection: turnDetection,
     },
   };
 
@@ -356,6 +405,29 @@ function sendVadUpdate() {
 
 function initVadControls() {
   updateVadDisplay();
+
+  if (elements.vadMode) {
+    elements.vadMode.addEventListener("change", () => {
+      VAD_SETTINGS.mode =
+        elements.vadMode.value === "server" ? "server" : "semantic";
+      updateVadDisplay();
+      sendVadUpdate();
+    });
+  }
+
+  if (elements.vadSilenceSlider) {
+    elements.vadSilenceSlider.addEventListener("input", () => {
+      VAD_SETTINGS.silenceMs = Math.round(
+        clamp(
+          parseFloat(elements.vadSilenceSlider.value),
+          VAD_LIMITS.silenceMs.min,
+          VAD_LIMITS.silenceMs.max,
+        ),
+      );
+      updateVadDisplay();
+      sendVadUpdate();
+    });
+  }
 
   if (elements.vadEagerness) {
     elements.vadEagerness.addEventListener("change", () => {
@@ -702,8 +774,24 @@ let pendingClientResponse = false;
 const clientResponseIds = new Set();
 let commitCounter = 0;
 let lastRequestCommitCounter = 0;
-let lastCommittedItemId = null;
+
+// Segments audio commités en attente de traduction. Une seule réponse peut être
+// en vol à la fois : sans cette file, tout segment commité pendant une réponse
+// serait perdu (d'autant plus avec une segmentation courte).
+const pendingCommitItems = [];
+const MAX_PENDING_COMMITS = 3; // au-delà, on abandonne les plus anciens pour ne pas décrocher
+
 const CONTEXT_ITEMS = 20; // Nombre de traductions précédentes à injecter comme contexte texte
+
+// Événements porteurs d'un fragment de traduction : après leur traitement,
+// currentLine contient le texte à jour du canal retenu
+const DELTA_EVENTS = new Set([
+  "response.text.delta",
+  "response.output_text.delta",
+  "response.audio_transcript.delta",
+  "response.output_audio_transcript.delta",
+  "response.content_part.delta",
+]);
 const requestCommitMap = new Map();
 const responseCommitMap = new Map();
 const commitConsumed = new Map();
@@ -714,10 +802,14 @@ function requestTextResponse() {
     return;
   }
 
+  // Traiter le plus ancien segment en attente
+  const pending = pendingCommitItems.shift() || null;
+  const commitItemId = pending?.itemId || null;
+
   const requestId = `client_${Date.now()}_${clientRequestSeq++}`;
   lastClientRequestId = requestId;
   pendingClientResponse = true;
-  lastRequestCommitCounter = commitCounter;
+  lastRequestCommitCounter = pending ? pending.commitSeq : commitCounter;
   requestCommitMap.set(requestId, lastRequestCommitCounter);
 
   const response = {
@@ -727,13 +819,13 @@ function requestTextResponse() {
       source: "client",
       request_id: requestId,
       commit_seq: String(lastRequestCommitCounter),
-      commit_item_id: lastCommittedItemId || "",
+      commit_item_id: commitItemId || "",
     },
   };
 
   // Construire l'input : contexte texte des dernières traductions + audio courant uniquement
   // (envoyer plusieurs item_reference audio ferait retraduire les segments précédents → doublons)
-  if (lastCommittedItemId) {
+  if (commitItemId) {
     const inputItems = [];
 
     const recentTranslations = subtitles.slice(-CONTEXT_ITEMS);
@@ -753,7 +845,7 @@ function requestTextResponse() {
       });
     }
 
-    inputItems.push({ type: "item_reference", id: lastCommittedItemId });
+    inputItems.push({ type: "item_reference", id: commitItemId });
     response.input = inputItems;
   }
 
@@ -770,6 +862,14 @@ function maybeRequestResponse() {
   if (awaitingResponse) return;
   awaitingResponse = true;
   requestTextResponse();
+}
+
+/**
+ * Enchaîne sur le segment suivant dès que la réponse en cours est terminée
+ */
+function flushPendingCommits() {
+  if (pendingCommitItems.length === 0) return;
+  maybeRequestResponse();
 }
 
 // ==========================================
@@ -840,22 +940,92 @@ let responseHasContentPart = false;
 let lastTranslationText = "";
 let lastTranslationAt = 0;
 let pendingFinalText = "";
-let deferredFinalText = "";
+
+// Texte en cours de génération, affiché au fur et à mesure des deltas
+let partialText = "";
+let partialRaf = null;
 
 function resetResponseBuffers() {
   currentLine = "";
   responseHasOutputText = false;
   responseHasContentPart = false;
   pendingFinalText = "";
+  clearPartial();
 }
 
-function maybeFlushDeferredFinal() {
-  if (isSpeaking) return;
-  if (awaitingResponse) return;
-  if (!deferredFinalText) return;
+/**
+ * Vrai si le texte est assez long pour être une traduction et non du bruit.
+ * Même seuil que finalizeTranslation, pour éviter d'afficher un fragment
+ * qui serait rejeté à la finalisation.
+ */
+function isDisplayableTranslation(text) {
+  const trimmed = (text || "").trim();
+  if (!trimmed) return false;
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+  return wordCount >= 2 || trimmed.length >= 8;
+}
 
-  finalizeTranslation(deferredFinalText);
-  deferredFinalText = "";
+/**
+ * Met à jour le texte partiel et planifie un rendu (throttlé par frame :
+ * les deltas arrivent bien plus vite que le rafraîchissement écran)
+ */
+function updatePartial(text) {
+  if (!isDisplayableTranslation(text)) {
+    // Un canal prioritaire a réinitialisé l'accumulation : repartir de zéro
+    if (partialText) clearPartial();
+    return;
+  }
+
+  partialText = text.trim();
+  if (partialRaf) return;
+
+  partialRaf = requestAnimationFrame(() => {
+    partialRaf = null;
+    renderPartial();
+  });
+}
+
+/**
+ * Retire le texte partiel de l'écran. Synchrone : la suppression et l'ajout
+ * du sous-titre final ont ainsi lieu dans le même tick, sans clignotement.
+ */
+function clearPartial() {
+  if (partialRaf) {
+    cancelAnimationFrame(partialRaf);
+    partialRaf = null;
+  }
+
+  const hadPartial = Boolean(partialText);
+  partialText = "";
+
+  if (prompteurPartialEl) {
+    prompteurPartialEl.remove();
+    prompteurPartialEl = null;
+  } else if (hadPartial && !IS_PROMPTEUR) {
+    renderSubtitles();
+  }
+}
+
+function renderPartial() {
+  if (!partialText) return;
+
+  if (!IS_PROMPTEUR) {
+    renderSubtitles();
+    return;
+  }
+
+  const container = elements.subtitlesContainer;
+  if (!container) return;
+  ensurePrompteurList(container);
+
+  if (!prompteurPartialEl) {
+    prompteurPartialEl = document.createElement("div");
+    prompteurPartialEl.className = "subtitle final partial";
+    prompteurListEl.appendChild(prompteurPartialEl);
+  }
+
+  prompteurPartialEl.textContent = partialText;
+  startPrompteurAutoScroll();
 }
 
 function finalizeTranslation(text) {
@@ -920,7 +1090,8 @@ function stopPrompteurScroll() {
   }
   prompteurScrollY = 0;
   prompteurListEl = null;
-  prompteurSeenKeys.clear();
+  prompteurPartialEl = null;
+  prompteurNodes.clear();
 }
 
 function ensurePrompteurList(container) {
@@ -946,8 +1117,11 @@ function startPrompteurAutoScroll() {
       const contentBottom = prompteurScrollY + blockHeight;
       if (contentBottom < 0) {
         prompteurListEl.innerHTML = "";
-        prompteurSeenKeys.clear();
+        prompteurNodes.clear();
+        prompteurPartialEl = null;
         prompteurScrollY = container.clientHeight;
+        // Réafficher la traduction en cours, effacée par le recyclage
+        if (partialText) renderPartial();
       }
     } else {
       prompteurScrollY -= prompteurScrollSpeed;
@@ -967,12 +1141,17 @@ function renderPrompteurList(container, items) {
   ensurePrompteurList(container);
 
   items.forEach((sub) => {
-    if (prompteurSeenKeys.has(sub.timestamp)) return;
+    const existing = prompteurNodes.get(sub.timestamp);
+    if (existing) {
+      // Le texte a pu être étendu en place par finalizeTranslation
+      if (existing.textContent !== sub.text) existing.textContent = sub.text;
+      return;
+    }
     const div = document.createElement("div");
     div.className = "subtitle final";
     div.textContent = sub.text;
     prompteurListEl.appendChild(div);
-    prompteurSeenKeys.add(sub.timestamp);
+    prompteurNodes.set(sub.timestamp, div);
   });
 
   startPrompteurAutoScroll();
@@ -1058,14 +1237,21 @@ function handleRealtimeEvent(event) {
         indicator.style.background = "#555";
         indicator.style.boxShadow = "none";
       }
-
-      maybeFlushDeferredFinal();
     }
 
     if (msg.type === "input_audio_buffer.committed") {
       console.log("🎙️ Audio envoyé pour traitement...");
-      lastCommittedItemId = msg.item_id || null;
       commitCounter += 1;
+      if (msg.item_id) {
+        pendingCommitItems.push({
+          itemId: msg.item_id,
+          commitSeq: commitCounter,
+        });
+        while (pendingCommitItems.length > MAX_PENDING_COMMITS) {
+          const dropped = pendingCommitItems.shift();
+          console.warn("Segment abandonné (file pleine):", dropped.itemId);
+        }
+      }
       commitConsumed.set(commitCounter, false);
       const pruneBefore = commitCounter - 10;
       for (const key of commitConsumed.keys()) {
@@ -1144,8 +1330,17 @@ function handleRealtimeEvent(event) {
       }
     }
 
+    // Affichage au fur et à mesure : dessiner le texte accumulé sans
+    // attendre la fin de la réponse
+    if (DELTA_EVENTS.has(msg.type)) {
+      updatePartial(currentLine);
+    }
+
     // Réponse terminée
     if (msg.type === "response.done") {
+      // Retirer le texte partiel avant d'ajouter le sous-titre final :
+      // les deux opérations ont lieu dans le même tick, sans clignotement
+      clearPartial();
       awaitingResponse = false;
       const wasCancelled =
         msg.response?.status === "cancelled" ||
@@ -1161,7 +1356,7 @@ function handleRealtimeEvent(event) {
           clientResponseIds.delete(responseId);
           responseCommitMap.delete(responseId);
         }
-        maybeFlushDeferredFinal();
+        flushPendingCommits();
         return;
       }
       if (alreadyConsumed && trimmedFinal) {
@@ -1170,25 +1365,21 @@ function handleRealtimeEvent(event) {
           clientResponseIds.delete(responseId);
           responseCommitMap.delete(responseId);
         }
-        maybeFlushDeferredFinal();
+        flushPendingCommits();
         return;
       }
       if (commitId && trimmedFinal) {
         commitConsumed.set(commitId, true);
       }
-      if (isSpeaking) {
-        deferredFinalText = finalText;
-      } else {
-        deferredFinalText = "";
-        finalizeTranslation(finalText);
-      }
+      // Afficher immédiatement, même si l'orateur continue de parler
+      finalizeTranslation(finalText);
       resetResponseBuffers();
       if (responseId) {
         clientResponseIds.delete(responseId);
         responseCommitMap.delete(responseId);
       }
       console.log("📦 Réponse complète");
-      maybeFlushDeferredFinal();
+      flushPendingCommits();
     }
 
     // Gestion des erreurs
@@ -1264,22 +1455,27 @@ function addSubtitle(text) {
 function renderSubtitles() {
   const container = elements.subtitlesContainer;
 
-  const maxItems = IS_PROMPTEUR
-    ? CONFIG.MAX_PROMPTEUR_ITEMS
-    : CONFIG.MAX_DISPLAYED_SUBTITLES;
-
-  const recentSubtitles = subtitles
-    .slice(-maxItems)
-    .sort((a, b) => a.timestamp - b.timestamp);
-
   if (IS_PROMPTEUR) {
+    const recentSubtitles = subtitles
+      .slice(-CONFIG.MAX_PROMPTEUR_ITEMS)
+      .sort((a, b) => a.timestamp - b.timestamp);
     renderPrompteurList(container, recentSubtitles);
     return;
   }
 
+  // Le texte en cours occupe une ligne : garder une place pour lui
+  const maxItems = partialText
+    ? CONFIG.MAX_DISPLAYED_SUBTITLES - 1
+    : CONFIG.MAX_DISPLAYED_SUBTITLES;
+
+  // slice(-0) renverrait tout le tableau : traiter le cas explicitement
+  const recentSubtitles = (maxItems > 0 ? subtitles.slice(-maxItems) : []).sort(
+    (a, b) => a.timestamp - b.timestamp,
+  );
+
   container.innerHTML = "";
 
-  if (subtitles.length === 0) {
+  if (subtitles.length === 0 && !partialText) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
     empty.textContent = isRunning
@@ -1296,6 +1492,13 @@ function renderSubtitles() {
     div.textContent = sub.text;
     container.appendChild(div);
   });
+
+  if (partialText) {
+    const div = document.createElement("div");
+    div.className = "subtitle final partial";
+    div.textContent = partialText;
+    container.appendChild(div);
+  }
 
   container.scrollTop = container.scrollHeight;
 }
@@ -1463,7 +1666,8 @@ function cleanup(resetRunning = true) {
   isSpeaking = false;
   currentLine = "";
   awaitingResponse = false;
-  deferredFinalText = "";
+  clearPartial();
+  pendingCommitItems.length = 0;
   sessionReady = false;
   vadUpdateSupported = false;
   vadSupportChecked = false;
