@@ -12,134 +12,158 @@
       font-size: 0.65rem;
     }
 
-    /* Taille réduite : texte des paramètres (panneau droit) */
-    .prompteur-right .vad-header,
-    .prompteur-right .vad-label,
-    .prompteur-right .vad-status,
-    .prompteur-right .mic-label,
-    .prompteur-right .session-info,
-    .prompteur-right .prompteur-status {
+    /* Taille réduite : texte des paramètres (panneau de commandes) */
+    .controls-panel .vad-header,
+    .controls-panel .vad-label,
+    .controls-panel .vad-status,
+    .controls-panel .mic-label,
+    .controls-panel .session-info,
+    .controls-panel .prompteur-status {
       font-size: 0.72rem;
     }
   </style>
 </head>
 
-<body class="prompteur">
-  <div class="prompteur-layout layout-50">
-    <section class="prompteur-left">
-      <div class="prompteur-badge">Traduction en direct</div>
-      <div id="subtitles" class="prompteur-subtitles"></div>
+<body class="prompteur controls-hidden">
+  <div class="prompteur-layout">
+    <section class="prompteur-diapo" id="diapoArea">
+      <div class="diapo-placeholder">Diapo</div>
     </section>
 
-    <aside class="prompteur-right">
-      <div class="prompteur-footer">
-        <span class="session-info" id="sessionInfo"></span>
-        <span class="prompteur-status" id="statusText">Pr?t ? d?marrer</span>
+    <aside class="prompteur-side">
+      <div class="prompteur-side-top" id="webcamArea">
+        <div class="webcam-placeholder">🙂</div>
       </div>
 
-      <!-- Ligne 1 : Statut + Démarrer + Arrêter -->
-      <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
-        <div class="status-indicator" id="statusIndicator" style="flex-shrink:0;">
-          <span class="status-dot"></span>
-          <span class="status-text">Statut</span>
-        </div>
-        <button id="startBtn" class="btn btn-primary btn-small"
-          style="flex:1; justify-content:center; white-space:nowrap;">
-          <span class="btn-icon">🎤</span>
-          Démarrer
-        </button>
-        <button id="stopBtn" class="btn btn-danger btn-small" disabled
-          style="flex-shrink:0; justify-content:center; white-space:nowrap;">
-          <span class="btn-icon">⏹</span>
-          Arrêter
-        </button>
+      <div class="prompteur-side-bottom">
+        <div class="prompteur-badge">Traduction en direct</div>
+        <div id="subtitles" class="prompteur-subtitles"></div>
       </div>
-
-      <!-- Ligne 2 : Mode noir + 50/50 + Taille du texte -->
-      <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
-        <button id="themeToggleBtn" class="btn btn-secondary btn-small"
-          style="flex-shrink:0; justify-content:center; white-space:nowrap;">
-          <span id="themeToggleIcon">🌙</span>
-          <span id="themeToggleLabel">Mode noir</span>
-        </button>
-        <button id="layoutToggleBtn" class="btn btn-secondary btn-small"
-          style="flex-shrink:0; justify-content:center; white-space:nowrap;">
-          <span id="layoutToggleLabel">⇔ 50/50</span>
-        </button>
-        <div style="display:flex; align-items:center; gap:0.3rem; flex:1; justify-content:flex-end; flex-wrap:nowrap;">
-          <span class="vad-label" style="white-space:nowrap; font-size:0.7rem;">Texte</span>
-          <span class="vad-status" id="fontSizeValue" style="white-space:nowrap; font-size:0.7rem;">2.50 rem</span>
-          <button id="fontDecrBtn" class="btn btn-secondary btn-small"
-            style="flex-shrink:0; justify-content:center; padding:0.2rem 0.5rem;">A−</button>
-          <button id="fontIncrBtn" class="btn btn-secondary btn-small"
-            style="flex-shrink:0; justify-content:center; padding:0.2rem 0.5rem;">A+</button>
-        </div>
-      </div>
-
-      <div class="mic-controls">
-        <label class="mic-label" for="micSelect">Microphone</label>
-        <div class="mic-actions">
-          <select id="micSelect" class="mic-select"></select>
-          <button id="micRefresh" class="btn btn-secondary btn-small">Rafraichir</button>
-        </div>
-      </div>
-
-      <div class="vad-controls" id="vadControls">
-        <div class="vad-header">
-          <span>Semantic VAD</span>
-          <span class="vad-status" id="vadStatus">Live</span>
-        </div>
-        <div class="vad-row">
-          <span class="vad-label">Réactivité</span>
-          <div class="vad-actions">
-            <select class="vad-select" id="vadEagerness" data-vad="eagerness">
-              <option value="low">Faible</option>
-              <option value="medium">Moyenne</option>
-              <option value="high" selected>Élevée</option>
-              <option value="auto">Auto</option>
-            </select>
-          </div>
-        </div>
-        <div class="vad-row">
-          <span class="vad-label">Prefixe (ms)</span>
-          <div class="vad-actions">
-            <input class="vad-slider" type="range" min="0" max="1000" step="50" value="250" data-vad="prefix" />
-            <span class="vad-value" id="vadPrefixValue">250</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="vad-controls">
-        <div class="vad-header">
-          <span>Vitesse défilement</span>
-          <span class="vad-status" id="scrollSpeedValue">1.2 px/frame</span>
-        </div>
-        <div class="vad-row">
-          <span class="vad-label">Ligne suivante</span>
-          <div class="vad-actions">
-            <input id="scrollSpeed" class="vad-slider" type="range" min="0" max="6" step="0.1" value="1.2" />
-          </div>
-        </div>
-      </div>
-
-      <div id="prompteurStats" class="prompteur-stats"></div>
-
-      <div class="audio-level-container" id="audioLevelContainer" style="display: none;">
-        <div class="audio-level-label">Niveau audio</div>
-        <div class="audio-level-bar">
-          <div class="audio-level-fill" id="audioLevel"></div>
-        </div>
-      </div>
-
-      <details class="history-panel">
-        <summary>Historique complet</summary>
-        <div id="historyContent" class="history-content"></div>
-        <button id="exportBtn" class="btn btn-secondary" style="margin-top: 1rem;">
-          Exporter (TXT)
-        </button>
-      </details>
     </aside>
   </div>
+
+  <!-- Bouton flottant : afficher le panneau de commandes -->
+  <button id="showControlsBtn" class="floating-btn show-controls-btn" title="Afficher les commandes"
+    aria-label="Afficher les commandes">⚙</button>
+
+  <!-- Bouton flottant : démarrer / arrêter la traduction (visible quand les commandes sont masquées) -->
+  <button id="miniStartStopBtn" class="floating-btn mini-startstop-btn" title="Démarrer la traduction"
+    aria-label="Démarrer la traduction">🎤</button>
+
+  <!-- Panneau de commandes (masquable) -->
+  <aside id="controlsPanel" class="controls-panel">
+    <div class="controls-panel-header">
+      <span>Commandes</span>
+      <button id="hideControlsBtn" class="btn btn-secondary btn-small">✕ Masquer</button>
+    </div>
+
+    <div class="prompteur-footer">
+      <span class="session-info" id="sessionInfo"></span>
+      <span class="prompteur-status" id="statusText">Prêt à démarrer</span>
+    </div>
+
+    <!-- Ligne 1 : Statut + Démarrer + Arrêter -->
+    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
+      <div class="status-indicator" id="statusIndicator" style="flex-shrink:0;">
+        <span class="status-dot"></span>
+        <span class="status-text">Statut</span>
+      </div>
+      <button id="startBtn" class="btn btn-primary btn-small"
+        style="flex:1; justify-content:center; white-space:nowrap;">
+        <span class="btn-icon">🎤</span>
+        Démarrer
+      </button>
+      <button id="stopBtn" class="btn btn-danger btn-small" disabled
+        style="flex-shrink:0; justify-content:center; white-space:nowrap;">
+        <span class="btn-icon">⏹</span>
+        Arrêter
+      </button>
+    </div>
+
+    <!-- Ligne 2 : Mode noir + 50/50 + Taille du texte -->
+    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
+      <button id="themeToggleBtn" class="btn btn-secondary btn-small"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap;">
+        <span id="themeToggleIcon">🌙</span>
+        <span id="themeToggleLabel">Mode noir</span>
+      </button>
+      <button id="layoutToggleBtn" class="btn btn-secondary btn-small"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap;">
+        <span id="layoutToggleLabel">⇔ 50/50</span>
+      </button>
+      <div style="display:flex; align-items:center; gap:0.3rem; flex:1; justify-content:flex-end; flex-wrap:nowrap;">
+        <span class="vad-label" style="white-space:nowrap; font-size:0.7rem;">Texte</span>
+        <span class="vad-status" id="fontSizeValue" style="white-space:nowrap; font-size:0.7rem;">2.50 rem</span>
+        <button id="fontDecrBtn" class="btn btn-secondary btn-small"
+          style="flex-shrink:0; justify-content:center; padding:0.2rem 0.5rem;">A−</button>
+        <button id="fontIncrBtn" class="btn btn-secondary btn-small"
+          style="flex-shrink:0; justify-content:center; padding:0.2rem 0.5rem;">A+</button>
+      </div>
+    </div>
+
+    <div class="mic-controls">
+      <label class="mic-label" for="micSelect">Microphone</label>
+      <div class="mic-actions">
+        <select id="micSelect" class="mic-select"></select>
+        <button id="micRefresh" class="btn btn-secondary btn-small">Rafraichir</button>
+      </div>
+    </div>
+
+    <div class="vad-controls" id="vadControls">
+      <div class="vad-header">
+        <span>Semantic VAD</span>
+        <span class="vad-status" id="vadStatus">Live</span>
+      </div>
+      <div class="vad-row">
+        <span class="vad-label">Réactivité</span>
+        <div class="vad-actions">
+          <select class="vad-select" id="vadEagerness" data-vad="eagerness">
+            <option value="low">Faible</option>
+            <option value="medium">Moyenne</option>
+            <option value="high" selected>Élevée</option>
+            <option value="auto">Auto</option>
+          </select>
+        </div>
+      </div>
+      <div class="vad-row">
+        <span class="vad-label">Prefixe (ms)</span>
+        <div class="vad-actions">
+          <input class="vad-slider" type="range" min="0" max="1000" step="50" value="250" data-vad="prefix" />
+          <span class="vad-value" id="vadPrefixValue">250</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="vad-controls">
+      <div class="vad-header">
+        <span>Vitesse défilement</span>
+        <span class="vad-status" id="scrollSpeedValue">1.2 px/frame</span>
+      </div>
+      <div class="vad-row">
+        <span class="vad-label">Ligne suivante</span>
+        <div class="vad-actions">
+          <input id="scrollSpeed" class="vad-slider" type="range" min="0" max="6" step="0.1" value="1.2" />
+        </div>
+      </div>
+    </div>
+
+    <div id="prompteurStats" class="prompteur-stats"></div>
+
+    <div class="audio-level-container" id="audioLevelContainer" style="display: none;">
+      <div class="audio-level-label">Niveau audio</div>
+      <div class="audio-level-bar">
+        <div class="audio-level-fill" id="audioLevel"></div>
+      </div>
+    </div>
+
+    <details class="history-panel">
+      <summary>Historique complet</summary>
+      <div id="historyContent" class="history-content"></div>
+      <button id="exportBtn" class="btn btn-secondary" style="margin-top: 1rem;">
+        Exporter (TXT)
+      </button>
+    </details>
+  </aside>
 
   <div id="toastContainer" class="toast-container"></div>
 
@@ -175,16 +199,55 @@
         if (fontSize > min) { fontSize = Math.round((fontSize - step) * 100) / 100; applyFontSize(); }
       });
 
-      // Layout toggle 70/30 ↔ 50/50 (défaut : 50/50)
-      let is5050 = true;
+      // Layout toggle 70/30 ↔ 50/50 (défaut : 70/30)
+      let is5050 = false;
       const layoutBtn = document.getElementById('layoutToggleBtn');
       const layoutLabel = document.getElementById('layoutToggleLabel');
-      layoutLabel.textContent = '⇔ 70/30';
+      layoutLabel.textContent = '⇔ 50/50';
       layoutBtn.addEventListener('click', function () {
         is5050 = !is5050;
         document.querySelector('.prompteur-layout').classList.toggle('layout-50', is5050);
         layoutLabel.textContent = is5050 ? '⇔ 70/30' : '⇔ 50/50';
       });
+
+      // Affichage / masquage du panneau de commandes
+      const body = document.body;
+      const showControlsBtn = document.getElementById('showControlsBtn');
+      const hideControlsBtn = document.getElementById('hideControlsBtn');
+
+      function setControlsHidden(hidden) {
+        body.classList.toggle('controls-hidden', hidden);
+      }
+
+      showControlsBtn.addEventListener('click', function () { setControlsHidden(false); });
+      hideControlsBtn.addEventListener('click', function () { setControlsHidden(true); });
+
+      // Bouton flottant Démarrer/Arrêter (relaie les vrais boutons du panneau)
+      const miniBtn = document.getElementById('miniStartStopBtn');
+      const realStartBtn = document.getElementById('startBtn');
+      const realStopBtn = document.getElementById('stopBtn');
+
+      function syncMiniBtn() {
+        const isRunning = !realStopBtn.disabled;
+        miniBtn.textContent = isRunning ? '⏹' : '🎤';
+        miniBtn.classList.toggle('is-running', isRunning);
+        const label = isRunning ? 'Arrêter la traduction' : 'Démarrer la traduction';
+        miniBtn.title = label;
+        miniBtn.setAttribute('aria-label', label);
+      }
+
+      miniBtn.addEventListener('click', function () {
+        if (!realStopBtn.disabled) {
+          realStopBtn.click();
+        } else if (!realStartBtn.disabled) {
+          realStartBtn.click();
+        }
+      });
+
+      const btnObserver = new MutationObserver(syncMiniBtn);
+      btnObserver.observe(realStartBtn, { attributes: true, attributeFilter: ['disabled'] });
+      btnObserver.observe(realStopBtn, { attributes: true, attributeFilter: ['disabled'] });
+      syncMiniBtn();
     })();
   </script>
 </body>

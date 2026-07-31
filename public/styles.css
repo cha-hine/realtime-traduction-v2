@@ -392,11 +392,13 @@ body.prompteur {
   min-height: 100vh;
 }
 
-.prompteur-left {
+.prompteur-diapo {
   flex: 0 0 70%;
   padding: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 1.5rem;
   background: #e9dead;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
@@ -404,60 +406,105 @@ body.prompteur {
   height: 100vh;
 }
 
-.prompteur-right {
-  flex: 0 0 30%;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  background: #0b1220;
-  overflow-y: auto;
+.diapo-placeholder {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(15, 23, 42, 0.35);
+  border: 2px dashed rgba(15, 23, 42, 0.2);
+  border-radius: 1rem;
+  padding: 2rem 3rem;
 }
 
-.prompteur-right .btn {
+.prompteur-side {
+  flex: 0 0 30%;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.prompteur-side-top,
+.prompteur-side-bottom {
+  flex: 0 0 50%;
+  height: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.prompteur-side-top {
+  background: #0b1220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.webcam-placeholder {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+}
+
+.prompteur-side-bottom {
+  background: #e9dead;
+}
+
+.controls-panel .btn {
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
 }
 
-.prompteur-right .btn-icon {
+.controls-panel .btn-icon {
   font-size: 1rem;
 }
 
-.prompteur-right .status-bar {
+.controls-panel .status-bar {
   padding: 0.4rem 0.75rem;
 }
 
-.prompteur-right .vad-controls {
+.controls-panel .vad-controls {
   padding: 0.45rem 0.75rem;
 }
 
-.prompteur-right .mic-controls {
+.controls-panel .mic-controls {
   padding: 0.45rem 0.75rem;
 }
 
-.prompteur-right .vad-header {
+.controls-panel .mic-select {
+  min-width: 0;
+  flex: 1;
+}
+
+.controls-panel .vad-header {
   margin-bottom: 0.35rem;
 }
 
-.prompteur-right .vad-row {
+.controls-panel .vad-row {
   padding: 0.2rem 0;
 }
 
-.prompteur-right .history-panel summary {
+.controls-panel .history-panel summary {
   padding: 0.45rem 0.75rem;
 }
 
-.prompteur-right .history-content {
+.controls-panel .history-content {
   padding: 0.5rem 0.75rem;
 }
 
-.prompteur-right .audio-level-container {
+.controls-panel .audio-level-container {
   padding: 0.45rem 0.75rem;
 }
 
 .prompteur-badge {
   align-self: flex-start;
-  padding: 0.4rem 0.9rem;
+  padding: 0.35rem 0.7rem;
   border-radius: 999px;
   font-size: 0.85rem;
   letter-spacing: 0.04em;
@@ -466,16 +513,15 @@ body.prompteur {
   background: #22c55e;
   font-weight: 700;
   position: absolute;
-  top: 1.75rem;
-  left: 2.5rem;
+  top: 0.6rem;
+  left: 0.75rem;
   z-index: 2;
 }
 
 .prompteur-subtitles {
   position: absolute;
   inset: 0;
-  padding: 5rem 3rem 4.5rem;
-  overflow: hidden;
+  padding: 2.5rem 1rem 1rem;
   overflow: hidden;
 }
 
@@ -485,32 +531,16 @@ body.prompteur {
   align-items: center;
   font-size: 0.95rem;
   color: #94a3b8;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
-  padding-top: 1rem;
-  position: absolute;
-  left: 2.5rem;
-  right: 2.5rem;
-  bottom: 1.5rem;
-  z-index: 2;
 }
 
-.prompteur-right .prompteur-footer {
-  position: static;
-  margin-bottom: 0;
-  color: #0f172a;
-  border-top: none;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.15);
-  padding-top: 0;
-  padding-bottom: 0;
+.controls-panel .prompteur-footer {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding-bottom: 0.35rem;
 }
 
 .prompteur-status {
   font-weight: 600;
   color: #e2e8f0;
-}
-
-.prompteur-right .prompteur-status {
-  color: #0f172a;
 }
 
 body.prompteur #requestCounter,
@@ -532,6 +562,82 @@ body.prompteur .vad-controls,
 body.prompteur .audio-level-container,
 body.prompteur .history-panel {
   margin-bottom: 0;
+}
+
+/* Panneau de commandes masquable */
+.controls-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(420px, 94vw);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #0b1220;
+  overflow-y: auto;
+  z-index: 70;
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.controls-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+body.controls-hidden .controls-panel {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Boutons flottants (visibles quand le panneau de commandes est masqué) */
+.floating-btn {
+  position: fixed;
+  z-index: 80;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+
+.show-controls-btn {
+  top: 0.75rem;
+  right: 0.75rem;
+  background: #0b1220;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mini-startstop-btn {
+  top: 4.25rem;
+  right: 0.75rem;
+  background: #22c55e;
+}
+
+.mini-startstop-btn.is-running {
+  background: #ef4444;
+}
+
+body.controls-hidden .show-controls-btn,
+body.controls-hidden .mini-startstop-btn {
+  display: flex;
 }
 
 .subtitle {
@@ -759,11 +865,21 @@ body.prompteur .subtitle.final:last-child {
     flex-direction: column;
   }
 
-  .prompteur-left,
-  .prompteur-right {
+  .prompteur-diapo,
+  .prompteur-side {
     flex: 1 1 auto;
     width: 100%;
+    height: auto;
+  }
+
+  .prompteur-diapo {
     padding: 1.5rem;
+  }
+
+  .prompteur-side-top,
+  .prompteur-side-bottom {
+    height: auto;
+    min-height: 240px;
   }
 
   .prompteur-subtitles {
@@ -806,8 +922,12 @@ body.prompteur.dark {
   color: #ffffff;
 }
 
-body.prompteur.dark .prompteur-left {
+body.prompteur.dark .prompteur-diapo,
+body.prompteur.dark .prompteur-side-bottom {
   background: #000000;
+}
+
+body.prompteur.dark .prompteur-diapo {
   border-right-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -821,11 +941,11 @@ body.prompteur.dark .subtitle.final + .subtitle.final {
 }
 
 /* Layout 50/50 toggle */
-.prompteur-layout.layout-50 .prompteur-left {
+.prompteur-layout.layout-50 .prompteur-diapo {
   flex: 0 0 50%;
 }
 
-.prompteur-layout.layout-50 .prompteur-right {
+.prompteur-layout.layout-50 .prompteur-side {
   flex: 0 0 50%;
 }
 
