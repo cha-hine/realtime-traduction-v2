@@ -80,16 +80,16 @@
       </button>
     </div>
 
-    <!-- Ligne 2 : Mode noir + 50/50 + Taille du texte -->
+    <!-- Ligne 2 : Mode noir + Inverser + Taille du texte -->
     <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
       <button id="themeToggleBtn" class="btn btn-secondary btn-small"
         style="flex-shrink:0; justify-content:center; white-space:nowrap;">
         <span id="themeToggleIcon">🌙</span>
         <span id="themeToggleLabel">Mode noir</span>
       </button>
-      <button id="layoutToggleBtn" class="btn btn-secondary btn-small"
+      <button id="swapLayoutBtn" class="btn btn-secondary btn-small"
         style="flex-shrink:0; justify-content:center; white-space:nowrap;">
-        <span id="layoutToggleLabel">⇔ 50/50</span>
+        <span id="swapLayoutLabel">⇄ Inverser</span>
       </button>
       <div style="display:flex; align-items:center; gap:0.3rem; flex:1; justify-content:flex-end; flex-wrap:nowrap;">
         <span class="vad-label" style="white-space:nowrap; font-size:0.7rem;">Texte</span>
@@ -99,6 +99,28 @@
         <button id="fontIncrBtn" class="btn btn-secondary btn-small"
           style="flex-shrink:0; justify-content:center; padding:0.2rem 0.5rem;">A+</button>
       </div>
+    </div>
+
+    <!-- Ligne 3 : Largeur traduction + Hauteur traduction -->
+    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
+      <span class="vad-label" style="white-space:nowrap; font-size:0.7rem;">Largeur :</span>
+      <button class="btn btn-secondary btn-small trad-width-btn" data-width="30"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap; padding:0.2rem 0.5rem;">30%</button>
+      <button class="btn btn-secondary btn-small trad-width-btn" data-width="50"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap; padding:0.2rem 0.5rem;">50%</button>
+      <button class="btn btn-secondary btn-small trad-width-btn" data-width="70"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap; padding:0.2rem 0.5rem;">70%</button>
+      <button class="btn btn-secondary btn-small trad-width-btn" data-width="100"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap; padding:0.2rem 0.5rem;">100%</button>
+    </div>
+
+    <!-- Ligne 4 : Hauteur traduction -->
+    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:nowrap;">
+      <span class="vad-label" style="white-space:nowrap; font-size:0.7rem;">Hauteur :</span>
+      <button class="btn btn-secondary btn-small trad-height-btn" data-height="50"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap; padding:0.2rem 0.5rem;">50%</button>
+      <button class="btn btn-secondary btn-small trad-height-btn" data-height="100"
+        style="flex-shrink:0; justify-content:center; white-space:nowrap; padding:0.2rem 0.5rem;">100%</button>
     </div>
 
     <div class="mic-controls">
@@ -165,6 +187,17 @@
     </details>
   </aside>
 
+  <!-- Indicateur flottant : vitesse de défilement (visible quand commandes masquées) -->
+  <div id="miniScrollIndicator" class="floating-indicator mini-scroll-indicator" title="Vitesse de défilement">
+    <span class="mini-indicator-icon">⏩</span>
+    <span id="miniScrollValue">1.2</span>
+  </div>
+
+  <!-- Indicateur flottant : niveau audio (visible quand commandes masquées) -->
+  <div id="miniAudioIndicator" class="floating-indicator mini-audio-indicator" title="Niveau audio">
+    <span id="miniAudioDot" class="mini-audio-dot"></span>
+  </div>
+
   <div id="toastContainer" class="toast-container"></div>
 
   <script src="app.js"></script>
@@ -199,15 +232,50 @@
         if (fontSize > min) { fontSize = Math.round((fontSize - step) * 100) / 100; applyFontSize(); }
       });
 
-      // Layout toggle 70/30 ↔ 50/50 (défaut : 70/30)
-      let is5050 = false;
-      const layoutBtn = document.getElementById('layoutToggleBtn');
-      const layoutLabel = document.getElementById('layoutToggleLabel');
-      layoutLabel.textContent = '⇔ 50/50';
-      layoutBtn.addEventListener('click', function () {
-        is5050 = !is5050;
-        document.querySelector('.prompteur-layout').classList.toggle('layout-50', is5050);
-        layoutLabel.textContent = is5050 ? '⇔ 70/30' : '⇔ 50/50';
+      // Largeur traduction : 30% / 50% / 70% / 100%
+      const widthClasses = ['layout-trad-30', 'layout-trad-50', 'layout-trad-70', 'layout-trad-100'];
+      const layout = document.querySelector('.prompteur-layout');
+      let currentWidth = 30;
+
+      function setTradWidth(w) {
+        widthClasses.forEach(c => layout.classList.remove(c));
+        if (w !== 30) layout.classList.add('layout-trad-' + w);
+        currentWidth = w;
+        document.querySelectorAll('.trad-width-btn').forEach(btn => {
+          btn.classList.toggle('btn-active', parseInt(btn.dataset.width) === w);
+        });
+      }
+
+      document.querySelectorAll('.trad-width-btn').forEach(btn => {
+        btn.addEventListener('click', function () { setTradWidth(parseInt(this.dataset.width)); });
+      });
+      setTradWidth(30);
+
+      // Hauteur traduction : 50% / 100%
+      const side = document.querySelector('.prompteur-side');
+      let currentHeight = 50;
+
+      function setTradHeight(h) {
+        side.classList.toggle('translation-full', h === 100);
+        currentHeight = h;
+        document.querySelectorAll('.trad-height-btn').forEach(btn => {
+          btn.classList.toggle('btn-active', parseInt(btn.dataset.height) === h);
+        });
+      }
+
+      document.querySelectorAll('.trad-height-btn').forEach(btn => {
+        btn.addEventListener('click', function () { setTradHeight(parseInt(this.dataset.height)); });
+      });
+      setTradHeight(50);
+
+      // Inversion layout : traduction à gauche / incrustation à droite
+      let isSwapped = false;
+      const swapLayoutBtn = document.getElementById('swapLayoutBtn');
+      const swapLayoutLabel = document.getElementById('swapLayoutLabel');
+      swapLayoutBtn.addEventListener('click', function () {
+        isSwapped = !isSwapped;
+        layout.classList.toggle('layout-swapped', isSwapped);
+        swapLayoutLabel.textContent = isSwapped ? '⇄ Normal' : '⇄ Inverser';
       });
 
       // Affichage / masquage du panneau de commandes
@@ -217,6 +285,12 @@
 
       function setControlsHidden(hidden) {
         body.classList.toggle('controls-hidden', hidden);
+        if (hidden && document.activeElement) {
+          const panel = document.getElementById('controlsPanel');
+          if (panel && panel.contains(document.activeElement)) {
+            document.activeElement.blur();
+          }
+        }
       }
 
       showControlsBtn.addEventListener('click', function () { setControlsHidden(false); });

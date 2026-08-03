@@ -146,6 +146,8 @@ function initPrompteurControls() {
 
   const updateValue = (value) => {
     elements.scrollSpeedValue.textContent = `${value} px/frame`;
+    const miniScroll = document.getElementById("miniScrollValue");
+    if (miniScroll) miniScroll.textContent = value;
   };
 
   elements.scrollSpeed.value = String(prompteurScrollSpeed);
@@ -588,6 +590,8 @@ function stopRealtime() {
   elements.startBtn.disabled = false;
   elements.stopBtn.disabled = true;
   elements.audioLevelContainer.style.display = "none";
+  const miniDotStop = document.getElementById("miniAudioDot");
+  if (miniDotStop) miniDotStop.style.background = "#4b5563";
   showToast("Traduction arrêtée", "warning");
 }
 
@@ -819,6 +823,20 @@ function updateAudioLevel() {
   const levelValue = document.getElementById("audioLevelValue");
   if (levelBar) levelBar.style.width = `${level}%`;
   if (levelValue) levelValue.textContent = Math.round(level);
+
+  // Mettre à jour l'indicateur mini audio
+  const miniDot = document.getElementById("miniAudioDot");
+  if (miniDot) {
+    if (level < 5) {
+      miniDot.style.background = "#4b5563"; // gris - pas de son
+    } else if (level < 40) {
+      miniDot.style.background = "#22c55e"; // vert - son présent
+    } else if (level < 75) {
+      miniDot.style.background = "#eab308"; // jaune - son correct
+    } else {
+      miniDot.style.background = "#ef4444"; // rouge - son trop fort
+    }
+  }
 
   requestAnimationFrame(updateAudioLevel);
 }
