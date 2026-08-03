@@ -24,7 +24,7 @@
 }
 
 body {
-  font-family: 'Aptos', 'Segoe UI', Arial, sans-serif;
+  font-family: "Aptos", "Segoe UI", Arial, sans-serif;
   background: var(--bg-color);
   color: var(--text-color);
   min-height: 100vh;
@@ -109,13 +109,23 @@ body.prompteur {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .session-info {
@@ -355,7 +365,11 @@ body.prompteur {
 .audio-level-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--success-color), var(--primary-color));
+  background: linear-gradient(
+    90deg,
+    var(--success-color),
+    var(--primary-color)
+  );
   border-radius: 4px;
   transition: width 0.1s ease-out;
 }
@@ -510,7 +524,7 @@ body.prompteur {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #0f172a;
-  background: #22c55e;
+  background: #126e34;
   font-weight: 700;
   position: absolute;
   top: 0.6rem;
@@ -579,7 +593,9 @@ body.prompteur .history-panel {
   overflow-y: auto;
   z-index: 70;
   box-shadow: -6px 0 24px rgba(0, 0, 0, 0.4);
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
   transform: translateX(0);
   opacity: 1;
 }
@@ -716,8 +732,9 @@ body.prompteur .subtitle {
   color: #000000;
   background: transparent;
   border: none;
-/*   animation: subtitleAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
- */}
+  /*   animation: subtitleAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+ */
+}
 
 .subtitle.final + .subtitle.final {
   border-top: 2px solid rgba(0, 0, 0, 0.25);
@@ -749,7 +766,6 @@ body.prompteur .subtitle.final:last-child {
   }
 }
 
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -760,7 +776,6 @@ body.prompteur .subtitle.final:last-child {
     transform: translateY(0);
   }
 }
-
 
 /* Container pour les sous-titres finaux */
 .finals-container {
