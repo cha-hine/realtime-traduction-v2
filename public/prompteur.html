@@ -203,18 +203,19 @@
   <script src="app.js"></script>
   <script>
     (function () {
-      let fontSize = 2.5;
+      const LS = {
+        get: (k, fallback) => { const v = localStorage.getItem(k); return v !== null ? v : String(fallback); },
+        set: (k, v) => localStorage.setItem(k, String(v)),
+      };
+
+      // --- Taille de police ---
+      let fontSize = parseFloat(LS.get('prompteur-fontsize', 2.5));
       const step = 0.25;
       const min = 1;
       const max = 8;
 
       function applyFontSize() {
-        document.querySelectorAll('.subtitle').forEach(el => {
-          el.style.fontSize = fontSize + 'rem';
-        });
         document.getElementById('fontSizeValue').textContent = fontSize.toFixed(2) + ' rem';
-
-        // Appliquer aussi aux nouvelles subtitles via une règle CSS dynamique
         let style = document.getElementById('dynamic-font-style');
         if (!style) {
           style = document.createElement('style');
@@ -222,6 +223,7 @@
           document.head.appendChild(style);
         }
         style.textContent = `.subtitle { font-size: ${fontSize}rem !important; }`;
+        LS.set('prompteur-fontsize', fontSize);
       }
 
       applyFontSize();
@@ -234,7 +236,7 @@
         if (fontSize > min) { fontSize = Math.round((fontSize - step) * 100) / 100; applyFontSize(); }
       });
 
-      // Largeur traduction : 30% / 50% / 70% / 100%
+      // --- Largeur traduction : 30% / 50% / 70% / 100% ---
       const widthClasses = ['layout-trad-30', 'layout-trad-50', 'layout-trad-70', 'layout-trad-100'];
       const layout = document.querySelector('.prompteur-layout');
       let currentWidth = 30;
@@ -246,14 +248,15 @@
         document.querySelectorAll('.trad-width-btn').forEach(btn => {
           btn.classList.toggle('btn-active', parseInt(btn.dataset.width) === w);
         });
+        LS.set('prompteur-width', w);
       }
 
       document.querySelectorAll('.trad-width-btn').forEach(btn => {
         btn.addEventListener('click', function () { setTradWidth(parseInt(this.dataset.width)); });
       });
-      setTradWidth(30);
+      setTradWidth(parseInt(LS.get('prompteur-width', 30)));
 
-      // Hauteur traduction : 50% / 100%
+      // --- Hauteur traduction : 50% / 100% ---
       const side = document.querySelector('.prompteur-side');
       let currentHeight = 50;
 
@@ -263,21 +266,30 @@
         document.querySelectorAll('.trad-height-btn').forEach(btn => {
           btn.classList.toggle('btn-active', parseInt(btn.dataset.height) === h);
         });
+        LS.set('prompteur-height', h);
       }
 
       document.querySelectorAll('.trad-height-btn').forEach(btn => {
         btn.addEventListener('click', function () { setTradHeight(parseInt(this.dataset.height)); });
       });
-      setTradHeight(50);
+      setTradHeight(parseInt(LS.get('prompteur-height', 50)));
 
-      // Inversion layout : traduction à gauche / incrustation à droite
-      let isSwapped = false;
+      // --- Inversion layout ---
+      let isSwapped = LS.get('prompteur-swapped', 'false') === 'true';
       const swapLayoutBtn = document.getElementById('swapLayoutBtn');
       const swapLayoutLabel = document.getElementById('swapLayoutLabel');
-      swapLayoutBtn.addEventListener('click', function () {
-        isSwapped = !isSwapped;
+
+      function applySwap() {
         layout.classList.toggle('layout-swapped', isSwapped);
         swapLayoutLabel.textContent = isSwapped ? '⇄ Normal' : '⇄ Inverser';
+      }
+
+      applySwap();
+
+      swapLayoutBtn.addEventListener('click', function () {
+        isSwapped = !isSwapped;
+        applySwap();
+        LS.set('prompteur-swapped', isSwapped);
       });
 
       // Affichage / masquage du panneau de commandes

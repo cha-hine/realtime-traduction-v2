@@ -401,7 +401,7 @@ body.prompteur {
   justify-content: center;
   gap: 1.5rem;
   background: #e9dead;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 2px solid rgba(0, 0, 0, 0.15);
   position: relative;
   height: 100vh;
 }
@@ -977,7 +977,11 @@ body.prompteur.dark .prompteur-side-bottom {
 }
 
 body.prompteur.dark .prompteur-diapo {
-  border-right-color: rgba(255, 255, 255, 0.08);
+  border-right-color: rgba(255, 255, 255, 0.35);
+}
+
+body.prompteur.dark .prompteur-layout.layout-swapped .prompteur-diapo {
+  border-left-color: rgba(255, 255, 255, 0.35);
 }
 
 body.prompteur.dark .subtitle,
@@ -1006,7 +1010,7 @@ body.prompteur.dark .subtitle.final + .subtitle.final {
 
 .prompteur-layout.layout-swapped .prompteur-diapo {
   border-right: none;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  border-left: 2px solid rgba(0, 0, 0, 0.15);
 }
 
 /* Largeur traduction : 50% */
