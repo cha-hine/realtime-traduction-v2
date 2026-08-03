@@ -224,6 +224,8 @@
         style.textContent = `.subtitle { font-size: ${fontSize}rem !important; }`;
       }
 
+      applyFontSize();
+
       document.getElementById('fontIncrBtn').addEventListener('click', function () {
         if (fontSize < max) { fontSize = Math.round((fontSize + step) * 100) / 100; applyFontSize(); }
       });
