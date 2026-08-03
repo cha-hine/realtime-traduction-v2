@@ -57,6 +57,7 @@ let prompteurScrollSpeed = CONFIG.PROMPTEUR_SCROLL_PX_PER_FRAME;
 let prompteurScrollRaf = null;
 let prompteurScrollY = 0;
 let prompteurListEl = null;
+let prompteurScrollPaused = false;
 const prompteurSeenKeys = new Set();
 
 // DOM Elements
@@ -938,6 +939,7 @@ function stopPrompteurScroll() {
   }
   prompteurScrollY = 0;
   prompteurListEl = null;
+  prompteurScrollPaused = false;
   prompteurSeenKeys.clear();
 }
 
@@ -960,12 +962,30 @@ function startPrompteurAutoScroll() {
 
     const blockHeight = prompteurListEl.offsetHeight;
     if (blockHeight > 0) {
-      prompteurScrollY -= prompteurScrollSpeed;
+      // Vérifie si le début de l'avant-dernière phrase est arrivé en haut (garde les 2 dernières)
+      if (!prompteurScrollPaused) {
+        const children = prompteurListEl.children;
+        const targetChild = children.length >= 2
+          ? children[children.length - 2]
+          : children[children.length - 1];
+        if (targetChild) {
+          const targetTop = prompteurScrollY + targetChild.offsetTop;
+          if (targetTop <= 0) {
+            prompteurScrollPaused = true;
+          }
+        }
+      }
+
+      if (!prompteurScrollPaused) {
+        prompteurScrollY -= prompteurScrollSpeed;
+      }
+
       const contentBottom = prompteurScrollY + blockHeight;
       if (contentBottom < 0) {
         prompteurListEl.innerHTML = "";
         prompteurSeenKeys.clear();
         prompteurScrollY = container.clientHeight;
+        prompteurScrollPaused = false;
       }
     } else {
       prompteurScrollY -= prompteurScrollSpeed;
@@ -984,6 +1004,7 @@ function startPrompteurAutoScroll() {
 function renderPrompteurList(container, items) {
   ensurePrompteurList(container);
 
+  let newItemsAdded = false;
   items.forEach((sub) => {
     if (prompteurSeenKeys.has(sub.timestamp)) return;
     const div = document.createElement("div");
@@ -991,7 +1012,13 @@ function renderPrompteurList(container, items) {
     div.textContent = sub.text;
     prompteurListEl.appendChild(div);
     prompteurSeenKeys.add(sub.timestamp);
+    newItemsAdded = true;
   });
+
+  // Reprend le défilement dès qu'un nouveau texte apparaît
+  if (newItemsAdded) {
+    prompteurScrollPaused = false;
+  }
 
   startPrompteurAutoScroll();
 }
