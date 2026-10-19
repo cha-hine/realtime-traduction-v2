@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Traduction Prompteur - Urdu/Hindi → Français</title>
+  <title>Prompteur traduction</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* Taille réduite : badge "Traduction en direct" */
@@ -123,60 +123,8 @@
         style="flex-shrink:0; justify-content:center; white-space:nowrap; padding:0.2rem 0.5rem;">100%</button>
     </div>
 
-    <div class="mic-controls">
-      <label class="mic-label" for="micSelect">Microphone</label>
-      <div class="mic-actions">
-        <select id="micSelect" class="mic-select"></select>
-        <button id="micRefresh" class="btn btn-secondary btn-small">Rafraichir</button>
-      </div>
-    </div>
-
-    <div class="vad-controls" id="vadControls">
-      <div class="vad-header">
-        <span>Semantic VAD</span>
-        <span class="vad-status" id="vadStatus">Live</span>
-      </div>
-      <div class="vad-row">
-        <span class="vad-label">Réactivité</span>
-        <div class="vad-actions">
-          <select class="vad-select" id="vadEagerness" data-vad="eagerness">
-            <option value="low">Faible</option>
-            <option value="medium">Moyenne</option>
-            <option value="high" selected>Élevée</option>
-            <option value="auto">Auto</option>
-          </select>
-        </div>
-      </div>
-      <div class="vad-row">
-        <span class="vad-label">Prefixe (ms)</span>
-        <div class="vad-actions">
-          <input class="vad-slider" type="range" min="0" max="1000" step="50" value="250" data-vad="prefix" />
-          <span class="vad-value" id="vadPrefixValue">250</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="vad-controls">
-      <div class="vad-header">
-        <span>Vitesse défilement</span>
-        <span class="vad-status" id="scrollSpeedValue">1.2 px/frame</span>
-      </div>
-      <div class="vad-row">
-        <span class="vad-label">Ligne suivante</span>
-        <div class="vad-actions">
-          <input id="scrollSpeed" class="vad-slider" type="range" min="0" max="6" step="0.1" value="1.2" />
-        </div>
-      </div>
-    </div>
-
-    <div id="prompteurStats" class="prompteur-stats"></div>
-
-    <div class="audio-level-container" id="audioLevelContainer" style="display: none;">
-      <div class="audio-level-label">Niveau audio</div>
-      <div class="audio-level-bar">
-        <div class="audio-level-fill" id="audioLevel"></div>
-      </div>
-    </div>
+    <!-- Réglages (moteur, instructions, VAD, micro, défilement, stats) générés par js/main.js -->
+    <div id="settingsHost" class="settings-host"></div>
 
     <details class="history-panel">
       <summary>Historique complet</summary>
@@ -200,7 +148,7 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="app.js"></script>
+  <script type="module" src="js/main.js"></script>
   <script>
     (function () {
       const LS = {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Traduction Temps Réel - Urdu/Hindi → Français</title>
+  <title>Traduction temps réel</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
     <!-- Header -->
     <header class="header">
       <h1>Traduction Temps Réel</h1>
-      <p class="subtitle">Urdu / Hindi → Français</p>
+      <p class="header-subtitle">Majlis &amp; séminaires → Français</p>
     </header>
 
     <!-- Status Bar -->
@@ -35,48 +35,7 @@
       </button>
     </div>
 
-    <!-- Microphone Select -->
-    <div class="mic-controls">
-      <label class="mic-label" for="micSelect">Microphone</label>
-      <div class="mic-actions">
-        <select id="micSelect" class="mic-select"></select>
-        <button id="micRefresh" class="btn btn-secondary btn-small">Rafraichir</button>
-      </div>
-    </div>
-
-    <!-- VAD Controls -->
-    <div class="vad-controls" id="vadControls">
-      <div class="vad-header">
-        <span>Semantic VAD</span>
-        <span class="vad-status" id="vadStatus">Live</span>
-      </div>
-      <div class="vad-row">
-        <span class="vad-label">Réactivité</span>
-        <div class="vad-actions">
-          <select class="vad-select" id="vadEagerness" data-vad="eagerness">
-            <option value="low">Faible</option>
-            <option value="medium">Moyenne</option>
-            <option value="high" selected>Élevée</option>
-            <option value="auto">Auto</option>
-          </select>
-        </div>
-      </div>
-      <div class="vad-row">
-        <span class="vad-label">Prefixe (ms)</span>
-        <div class="vad-actions">
-          <input class="vad-slider" type="range" min="0" max="1000" step="50" value="250" data-vad="prefix" />
-          <span class="vad-value" id="vadPrefixValue">250</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Audio Level -->
-    <div class="audio-level-container" id="audioLevelContainer" style="display: none;">
-      <div class="audio-level-label">Niveau audio</div>
-      <div class="audio-level-bar">
-        <div class="audio-level-fill" id="audioLevel"></div>
-      </div>
-    </div>
+    <div id="settingsHost" class="settings-host"></div>
 
     <!-- Subtitles Area -->
     <div class="subtitles-area">
@@ -96,6 +55,6 @@
   <!-- Toast notifications -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="app.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

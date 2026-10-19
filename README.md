@@ -1,115 +1,67 @@
-# Traduction Temps Réel - Urdu/Hindi → Français
+# Traduction temps réel — Majlis & séminaires → Français
 
-Solution de traduction en temps réel utilisant l'API OpenAI Realtime et WebRTC.
+Sous-titrage en direct (prompteur) de la parole (gujarati khoja, ourdou, hindi, arabe…) vers le français.
 
-## Fonctionnalités
+## Trois moteurs au choix
 
-- Traduction Urdu/Hindi → Français en temps réel
-- Sous-titres synchronisés avec latence minimale (200-400ms)
-- Reconnexion automatique
-- Rotation de session automatique (avant expiration 60 min)
-- Export de l'historique en fichier texte
-- Interface responsive
+| Moteur | Transport | Instructions perso | Vitesse | Coût indicatif |
+|---|---|---|---|---|
+| **OpenAI Translate** (`gpt-realtime-translate`) | WebRTC | ❌ (langue détectée seule) | ⚡ le plus rapide : traduit en continu, sans attendre les pauses | 0,034 $/min ≈ 2 $/h |
+| **OpenAI Realtime 2.1** (`gpt-realtime-2.1`) | WebRTC | ✅ | rapide : une traduction par phrase détectée | au token |
+| **Gemini Live** (`gemini-3.8-live`) | WebSocket (relais local) | ✅ | rapide | au token |
+
+Les instructions de traduction (contexte du majlis, orateur, thème, termes arabes à garder…) se modifient
+dans le panneau **Instructions de traduction** et sont mémorisées dans le navigateur.
+
+## Installation
+
+```bash
+npm install
+cp .env.example .env   # puis renseigner OPENAI_API_KEY et/ou GEMINI_API_KEY
+npm start
+```
+
+Ouvrir http://localhost:3000/prompteur.html (ou le port défini dans `.env`).
+
+## Utilisation
+
+1. ⚙ → choisir le moteur, la langue parlée et le micro.
+2. **Démarrer**. Les phrases apparaissent mot à mot pendant la traduction.
+3. Un réglage modifié pendant la séance s'applique avec **↻ Appliquer maintenant** : une nouvelle session
+   est ouverte avant de fermer l'ancienne, donc sans coupure.
+4. Flèches ← → ou pointeur de diapo (PageUp/PageDown) : vitesse de défilement.
+5. **Arrêter** exporte automatiquement l'historique en `.txt`.
+
+Conseil son : si le micro vient de la table de mixage, décocher « Filtrage du navigateur ».
 
 ## Architecture
 
 ```
-Microphone
-    ↓
-WebRTC (RTCPeerConnection)
-    ↓
-OpenAI Realtime API (gpt-realtime)
-    ↓
-Événements texte (delta + completed)
-    ↓
-Sous-titres synchronisés
+server/
+  index.js     Express : pages, /api/config, /session/openai (échange SDP WebRTC)
+  openai.js    sessions gpt-realtime-2.1 et gpt-realtime-translate
+  gemini.js    relais WebSocket /gemini ⇄ Gemini Live (reprise de session automatique)
+  prompt.js    instructions par défaut selon la langue
+  settings.js  validation des réglages reçus du navigateur
+public/
+  prompteur.html, index.html, styles.css
+  js/main.js              interface, démarrage, reconnexion, rotation sans coupure
+  js/audio.js             micro unique + niveau + PCM 16 kHz (Gemini)
+  js/pcm-worklet.js       conversion audio pour Gemini
+  js/transcript.js        segments, découpage en phrases, prompteur, historique
+  js/providers/openai.js  OpenAI (WebRTC)
+  js/providers/gemini.js  Gemini (WebSocket)
 ```
-
-## Prérequis
-
-- Node.js 18+
-- Clé API OpenAI avec accès à l'API Realtime
-- Navigateur moderne (Chrome, Firefox, Edge)
-
-## Installation
-
-1. Clonez le projet et installez les dépendances :
-
-```bash
-npm install
-```
-
-2. Configurez votre clé API OpenAI :
-
-```bash
-cp .env.example .env
-```
-
-Éditez `.env` et ajoutez votre clé :
-
-```
-OPENAI_API_KEY=sk-votre-cle-api
-```
-
-3. Démarrez le serveur :
-
-```bash
-npm start
-```
-
-4. Ouvrez http://localhost:3000/prompteur.html dans votre navigateur
-
-## Utilisation
-
-1. Cliquez sur "Démarrer la traduction"
-2. Autorisez l'accès au microphone
-3. Parlez en urdu ou hindi
-4. Les sous-titres en français apparaissent en temps réel
-
-## Structure du projet
-
-```
-realtime-traduction-v2/
-├── server/
-│   └── index.js          # Serveur Express + endpoint token
-├── public/
-│   ├── index.html        # Page principale
-├    ── prompteur.html    # Page principale
-│   ├── styles.css        # Styles
-│   └── app.js            # Client WebRTC
-├── .env.example          # Exemple de configuration
-├── .gitignore
-├── package.json
-└── README.md
-```
-
-## Coût estimé
-
-~1-2 $ par heure d'utilisation (selon le volume de parole)
 
 ## Sécurité
 
-- La clé API OpenAI n'est JAMAIS exposée côté client
-- Un token éphémère est généré par le serveur pour chaque session
-- Les tokens expirent après 60 minutes
+- Les clés API restent sur le serveur (jamais envoyées au navigateur).
+- Les appels venant d'un autre site web sont refusés.
+- `HOST=127.0.0.1` dans `.env` interdit l'accès depuis le réseau local.
 
 ## Dépannage
 
-### Le microphone n'est pas détecté
-
-- Vérifiez que vous utilisez HTTPS ou localhost
-- Autorisez l'accès au microphone dans les paramètres du navigateur
-
-### Erreur de connexion
-
-- Vérifiez que votre clé API OpenAI est valide
-- Vérifiez que vous avez accès à l'API Realtime
-
-### La traduction ne démarre pas
-
-- Ouvrez la console développeur (F12) pour voir les erreurs
-- Vérifiez que le serveur est bien démarré
-
-## License
-
-MIT
+- **Micro non détecté** : utiliser `localhost` ou HTTPS, autoriser le micro.
+- **Gemini « clé manquante »** : ajouter `GEMINI_API_KEY` dans `.env` puis relancer.
+- **Erreur de modèle Gemini** : changer `GEMINI_MODEL` dans `.env` (voir la liste des modèles Live chez Google).
+- Console développeur (F12) pour le détail des erreurs. Tests d'affichage sans micro : `prompteur.html?debug`.
